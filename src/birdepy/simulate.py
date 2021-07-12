@@ -85,7 +85,7 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
     out : array_like
         If k=1 a list containing sampled population size observations at
         `times`, generated according to `model`.
-        Or if k>= 1, a numpy.ndarray containing k sample paths, each
+        Or if k>1, a numpy.ndarray containing k sample paths, each
         contained in a row of the array.
 
     Examples
