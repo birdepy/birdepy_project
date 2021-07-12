@@ -184,14 +184,9 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         if 'eps' in options.keys():
             eps = options['eps']
         else:
-            eps = 1e-2
-        if 'cut_meth' in options.keys():
-            cut_meth = options['cut_meth']
-        else:
-            cut_meth = None
+            eps = None
         return probability_Erlang.probability_Erlang(z0, zt, t, param, b_rate,
-                                                     d_rate, z_trunc, cut_meth,
-                                                     eps, k)
+                                                     d_rate, z_trunc, k, eps)
 
     elif method == 'expm':
         if 'z_trunc' in options.keys():
@@ -277,16 +272,11 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         if 'eps' in options.keys():
             eps = options['eps']
         else:
-            eps = 1e-2
-        if 'cut_meth' in options.keys():
-            cut_meth = options['cut_meth']
-        else:
-            cut_meth = None
+            eps = None
         return probability_uniform.probability_uniform(z0, zt, t, param,
                                                        b_rate,
-                                                       d_rate, z_trunc,
-                                                       cut_meth,
-                                                       eps, k)
+                                                       d_rate, z_trunc, k,
+                                                       eps)
     else:
         raise TypeError("Specified 'method' for computing "
                         "probabilities is unknown. Should be one of 'da', "

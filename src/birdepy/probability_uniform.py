@@ -4,15 +4,11 @@ from scipy.optimize import root_scalar
 from scipy.stats import poisson
 
 
-def p_mat_bld_uniform(q_mat, t, cut_meth, eps, _k, num_states):
+def p_mat_bld_uniform(q_mat, t, eps, _k, num_states):
     m = np.amax(np.absolute(np.diag(q_mat)))
     a_mat = np.divide(q_mat, m) + np.eye(num_states)
     w = np.eye(num_states)
-    if cut_meth == 'Markov':
-        _k = int(np.maximum(5, np.ceil(((m * t) - eps) / eps)))
-    elif cut_meth == 'bounded-Markov':
-        _k = int(np.maximum(5, np.minimum(_k, np.ceil(((m * t) - eps) / eps))))
-    elif cut_meth == 'Chernoff':
+    if eps is not None::
         _k = int(np.maximum(5,
                             root_scalar(lambda a: ((a + 1) / (m * t)) **
                                                   (a + 1) *
@@ -29,8 +25,7 @@ def p_mat_bld_uniform(q_mat, t, cut_meth, eps, _k, num_states):
     return p_mat
 
 
-def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, cut_meth,
-                        eps, k):
+def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *uniformization* method.
 
@@ -53,19 +48,11 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, cut_meth,
         and ``z_max=max(z0, zt) + 100``.
 
     k : int, optional
-        Number of terms to include in approximation to probability.
-        Can be set to be updated dynamically to ensure error is
-        bounded by argument `eps` by setting argument 'cut_method' to 'Markov',
-        'bounded-Markov' or 'Chernoff'.
+        Number of terms to include in approximation to probability. If `eps` 
+        is not None, then this is determined dynamically. 
 
     eps : scalar, optional
-        Error bound when argument `cut_meth` is 'Markov', 'bounded-Markov' or
-        'Chernoff'.
-
-    cut_meth : string, optional
-        If set to 'Markov', 'bounded-Markov' or 'Chernoff', ensures error of
-        probability approximation are bounded by argument 'eps' by dynamically
-        choosing argument 'k'.
+        Error bound on probability. 
 
     Examples
     --------
@@ -113,13 +100,12 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, cut_meth,
 
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
-        p_mat = p_mat_bld_uniform(q_mat, t, cut_meth, eps, k, num_states)
+        p_mat = p_mat_bld_uniform(q_mat, t, eps, k, num_states)
         output = p_mat[np.ix_(z0 - z_min, zt - z_min)]
     else:
         output = np.zeros((t.size, z0.size, zt.size))
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
-            p_mat = p_mat_bld_uniform(q_mat, t[idx], cut_meth, eps,
-                                         k, num_states)
+            p_mat = p_mat_bld_uniform(q_mat, t[idx], eps, k, num_states)
             output[idx, :, :] = p_mat[np.ix_(z0 - z_min, zt - z_min)]
     return output

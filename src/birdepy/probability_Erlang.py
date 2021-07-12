@@ -3,8 +3,8 @@ import birdepy.utility as ut
 from scipy.optimize import root_scalar
 
 
-def p_mat_bld_Erlang(q_mat, t, cut_meth, eps, _k, num_states):
-    if cut_meth == 'Chernoff':
+def p_mat_bld_Erlang(q_mat, t, eps, _k, num_states):
+    if eps is not None:
         m = np.max(np.absolute(np.diag(q_mat)))
         _k = root_scalar(lambda k: eps * m + np.exp(k * eps / t) *
                                    (1 - eps / t) ** k + np.exp(-k * eps / t) *
@@ -15,8 +15,7 @@ def p_mat_bld_Erlang(q_mat, t, cut_meth, eps, _k, num_states):
     return np.linalg.matrix_power(r_matrix, _k)
 
 
-def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, cut_meth,
-                       eps, k):
+def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *Erlangization* method.
 
@@ -39,18 +38,11 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, cut_meth,
         and ``z_max=max(z0, zt) + 100``
 
     k : int, optional
-        Number of terms to include in approximation to probability.
-        Can be set to be updated dynamically to ensure error is
-        bounded by argument `eps` by setting argument 'cut_method' to
-        'Chernoff'.
+        Number of terms to include in approximation to probability. If `eps` 
+        is not None, then this is determined dynamically. 
 
     eps : scalar, optional
-        Error bound when argument 'cut_meth' is set to 'Chernoff'.
-
-    cut_meth : string, optional
-        If set to 'Chernoff', ensures error of nsures error of
-        probability approximation are bounded by argument 'eps' by
-        dynamically choosing argument 'k'.
+        Error bound on probability. 
 
     Examples
     --------
