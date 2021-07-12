@@ -312,11 +312,11 @@ def discrete_gwa(param, z0, times, k, survival, rng, display, b_rate, d_rate, ta
                     lam = b_rate(pop, param) / pop if pop > 0 else 0
                     mu = d_rate(pop, param) / pop if pop > 0 else 0
                     p = 1 - beta1(lam, mu, tau)
-                    if p < 0 or p > 1 or p is np.isnan(p):
-                        print('p:', p)
-                        print('lam:', lam)
-                        print('mu:', mu)
-                        print('tau:', tau)
+                    # if p < 0 or p > 1 or p is np.isnan(p):
+                    #     print('p:', p)
+                    #     print('lam:', lam)
+                    #     print('mu:', mu)
+                    #     print('tau:', tau)
                     number_survivors = rng.binomial(pop, p)
                     if number_survivors > 0:
                         pop = number_survivors + \
