@@ -429,11 +429,9 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
         times from one sample path.
 
     pop_sizes : list
-        If n=1 a list containing population sizes at the corresponding jump
-        times, generated according to `model` or according to a
-        birth-and-death process evolving according to `b_rate` and
-        `d_rate`.
-        Or if n>= 1, a list of lists where each list corresponds to the
+        If k=1 a list containing population sizes at the corresponding jump
+        times, generated according to `model`.
+        Or if k>1, a list of lists where each list corresponds to the
         population sizes corresponding to jump times from one sample path.
 
     Examples
