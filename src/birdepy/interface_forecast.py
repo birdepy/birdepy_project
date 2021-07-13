@@ -11,8 +11,7 @@ def forecast(z0, times, param, model,
              sim_method='gwa', k=10 ** 3, seed=None, colormap=cm.Purples,
              xlabel='Time', ylabel='Forecast Population',
              rotation=45, display=False, **options):
-    """Parameter estimation for (continuously or discretely observed)
-    continuous-time birth-and-death processes.
+    """Simulation based forecasting for continuous-time birth-and-death processes.
 
     Parameters
     ----------
