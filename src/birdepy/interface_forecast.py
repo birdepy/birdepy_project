@@ -67,9 +67,7 @@ def forecast(z0, times, param, model,
         The parameters are assumed to follow a truncated normal distribution
         with this covariance. If this is specified, then p_bounds should also be
         specified to avoid unwanted parameters. Incorporating uncertainty into
-        parameters means the function will incorporate parameter uncertainty
-        into the forecst (the forecast will therefore typically be substantially
-        wider).
+        parameters means that forecasted intervals will typically be substantially wider.
 
     p_bounds : list
         Bounds on parameters. Should be specified as a sequence of
