@@ -41,7 +41,7 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
         See :ref:`here <Expectation Step Techniques>` for more information.
 
     accelerator : string, optional
-        Likelihood approximation method. Should be one of
+        EM accelerator method. Should be one of
         (alphabetical ordering):
 
             - 'cg' (see [3])
