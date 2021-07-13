@@ -58,10 +58,6 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
     seed : int, optional
         Seed for simulation.
 
-    display : bool, optional
-        If set to True, then a progress indicator is printed as the simulation
-        is performed.
-
     Return
     -------
     out : array_like
