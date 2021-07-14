@@ -60,7 +60,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
             - 'Ricker 2'
             - 'Beverton-Holt'
             - 'Hassell'
-            - 'M-SS'
+            - 'MS-S'
             - 'Moran'
             - 'pure-birth'
             - 'pure-death'
@@ -120,7 +120,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
         The estimation output represented as an :func:`EstimationOutput`
         object. Important attributes are: `p` the parameter estimate, `se` the
         standard error estimate, `cov` the estimated covariance of the
-        assumed distribution of the parameter estimate, `se` the standard error,
+        assumed distribution of the parameter estimate, `err` error (log-likelihood
+        for 'framework' `dnm', squared error for 'framework' `lse'),
         `capacity` the estimated carrying capacity.
 
     Examples
