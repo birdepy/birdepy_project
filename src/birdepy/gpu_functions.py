@@ -29,7 +29,7 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
             - 'Ricker 1'
             - 'Beverton-Holt'
             - 'Hassell'
-            - 'M-SS'
+            - 'MS-S'
             - 'pure-birth'
             - 'pure-death'
             - 'Poisson'
@@ -128,7 +128,7 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
     elif model == 'Hassell':
         discrete_hassell[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
         return out
-    elif model == 'M-SS':
+    elif model == 'MS-S':
         discrete_mss[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
         return out
     elif model == 'Moran':
@@ -192,14 +192,14 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
             - 'Ricker'
             - 'Beverton-Holt'
             - 'Hassell'
-            - 'M-SS'
+            - 'MS-S'
             - 'Moran'
             - 'pure-birth'
             - 'pure-death'
             - 'Poisson'
             - 'linear'
             - 'linear-migration'
-            - 'M-SS'
+            - 'MS-S'
             - 'M/M/inf'
             - 'loss-system'
          Custom models are not available for this function. See :func:`birdepy.probability()`

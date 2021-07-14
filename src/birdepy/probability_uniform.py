@@ -8,7 +8,7 @@ def p_mat_bld_uniform(q_mat, t, eps, _k, num_states):
     m = np.amax(np.absolute(np.diag(q_mat)))
     a_mat = np.divide(q_mat, m) + np.eye(num_states)
     w = np.eye(num_states)
-    if eps is not None::
+    if eps is not None:
         _k = int(np.maximum(5,
                             root_scalar(lambda a: ((a + 1) / (m * t)) **
                                                   (a + 1) *

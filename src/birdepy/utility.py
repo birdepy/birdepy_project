@@ -188,18 +188,16 @@ def data_sort_2(data):
 
 
 def higher_birth(model):
-    if model == 'Verhulst 1':
-        return lambda z, p: p[0] * z
-    elif model == 'Verhulst 2 (SIS)':
-        return lambda z, p: (z <= p[2]) * p[0] * z * (1 - z / p[2])
+    if model == 'Verhulst':
+        return lambda z, p: max(p[0] *(1 - p[2]*z/p[4])*z, 0)
     elif model == 'Ricker':
-        return lambda z, p: p[0] * np.exp(-p[2] * z) * z
+        return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * z
     elif model == 'Beverton-Holt':
         return lambda z, p: p[0] * p[2] / (z + p[2])
     elif model == 'Hassell':
         return lambda z, p: \
             p[0] * z / (1 + z / p[2]) ** p[3]
-    elif model == 'M-SS':
+    elif model == 'MS-S':
         return lambda z, p: \
             p[0] * z / (1 + (z / p[2]) ** p[3])
     elif model == 'Moran':
@@ -226,10 +224,10 @@ def higher_birth(model):
 
 
 def higher_death(model):
-    if model == 'Verhulst 1':
-        return lambda z, p: p[1] * z + z ** 2 * (p[0] - p[1]) / p[2]
-    elif model in ['Verhulst 2 (SIS)', 'Ricker', 'Beverton-Holt', 'Hassell',
-                   'M-SS', 'loss-system', 'linear',
+    if model == 'Verhulst':
+        return lambda z, p: max(p[1] *(1 + p[3]*z/p[4])*z, 0)
+    elif model in ['Ricker', 'Beverton-Holt', 'Hassell',
+                   'MS-S', 'loss-system', 'linear',
                    'linear-migration', 'M/M/inf']:
         return lambda z, p: p[1] * z
     elif model == 'Moran':
@@ -247,19 +245,17 @@ def higher_death(model):
 
 
 def higher_h_fun(model):
-    if model == 'Verhulst 1':
-        return lambda z, p: (p[0] - p[1]) * (1 - 2 * z / p[2])
-    elif model == 'Verhulst 2 (SIS)':
-        return lambda z, p: p[0] - 2 * p[0] * z / p[2] - p[1]
+    if model == 'Verhulst':
+        return lambda z, p: p[0]-p[1]-2*z*(p[0]*p[2]+p[1]*p[3])/p[4]
     elif model == 'Ricker':
-        return lambda z, p: p[0] * np.exp(-p[2] * z) * (1 - p[2] * z) - p[1]
+        return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * (1 - p[3]*(p[2] * z)**p[3]) - p[1]
     elif model == 'Beverton-Holt':
         return lambda z, p: ((p[0] - p[1]) * p[2] ** 2 + p[1] * z ** 2) / \
                             (z + p[2]) ** 2
     elif model == 'Hassell':
         return lambda z, p: (p[0] * (1 + z / p[2] - p[3] * z)) / \
                             (1 + (z / p[2])) ** p[3] - p[1]
-    elif model == 'M-SS':
+    elif model == 'MS-S':
         return lambda z, p: (p[0] * (1 + (z / p[2]) ** p[3] * (1 - p[3]))) / \
                             (1 + (z / p[2]) ** p[3]) ** 2
     elif model == 'Moran':
@@ -284,17 +280,15 @@ def higher_h_fun(model):
 
 
 def higher_zf_bld(model):
-    if model == 'Verhulst 1':
-        return lambda p: [0, p[2]]
-    elif model == 'Verhulst 2 (SIS)':
-        return lambda p: [0, (1 - p[1] / p[0]) * p[2]]
+    if model == 'Verhulst':
+        return lambda p: [0, p[4]*(p[0]-p[1])/(p[2]*p[0] + p[1]*p[3])]
     elif model == 'Ricker':
-        return lambda p: [0, np.log(p[0] / p[1]) / p[2]]
+        return lambda p: [0, ((np.log(p[0] / p[1]))**(1/p[3])) / p[2]]
     elif model == 'Beverton-Holt':
         return lambda p: [0, p[2] * (p[0] - p[1]) / p[1]]
     elif model == 'Hassell':
         return lambda p: [0, p[2] * ((p[0] / p[1]) ** (1 / p[3]) - 1)]
-    elif model == 'M-SS':
+    elif model == 'MS-S':
         return lambda p: [0, p[2] * (p[0] / p[1] - 1) ** (1 / p[3])]
     elif model == 'Moran':
         return lambda p: [p[4]*(p[0]*(1-p[2])-p[1]*(1+p[3]) + np.sqrt((p[2]-1)**2 * p[0]**2 + 2 * p[0] * p[1]*(p[2]+p[3]+p[2]*p[3]-1) + p[1] ** 2 *(p[3]-1)**2))/(2*(p[0]-p[1])),

@@ -44,7 +44,7 @@ def forecast(z0, times, param, model,
             - 'Ricker 2'
             - 'Beverton-Holt'
             - 'Hassell'
-            - 'M-SS'
+            - 'MS-S'
             - 'Moran'
             - 'pure-birth'
             - 'pure-death'
