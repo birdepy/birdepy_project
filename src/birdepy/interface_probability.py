@@ -68,7 +68,7 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
             - 'gwasa' (see :ref:`here <birdepy.probability(method='gwasa')>`)
             - 'ilt' (see :ref:`here <birdepy.probability(method='ilt')>`)
             - 'oua' (see :ref:`here <birdepy.probability(method='oua')>`)
-            - 'sim (see  :ref:`here <birdepy.probability(method='sim')>`)
+            - 'sim' (see  :ref:`here <birdepy.probability(method='sim')>`)
             - 'uniform' (see :ref:`here <birdepy.probability(method='uniform')>`)
 
     options : dict, optional
