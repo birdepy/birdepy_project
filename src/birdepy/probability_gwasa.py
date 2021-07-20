@@ -105,10 +105,8 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate):
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='gwasa')[0][0]
-    0.030731643943282434
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='gwasa')[0][0]
-    0.004354457417019735
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='gwasa')[0][0]
+    0.0056424652895640266
 
     Notes
     -----

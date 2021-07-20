@@ -104,8 +104,8 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
     To use this function call :func:`birdepy.estimate` with `framework` set to
     'abc'::
 
-        birdepy.estimate(t_data, p_data, p0, p_bounds, framework='abc', eps0=10, k=100, method='gwa'
-                         tau=None, seed=None, distance=None, c=2)
+        birdepy.estimate(t_data, p_data, p0, p_bounds, framework='abc', eps0=10, k=100, its=1,
+                         method='gwa', tau=None, seed=None, distance=None, c=2)
 
     The parameters associated with this framework (listed below) can be
     accessed using kwargs in :func:`birdepy.estimate()`. See documentation of
@@ -156,16 +156,22 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
     Simulate a sample path and estimate the parameters using ABC.
 
     >>> import birdepy as bd
-    ... t_data = [t for t in range(100)]
-    ... p_data = bd.simulate.discrete([0.75, 0.25, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True, seed=2021)
+    >>> t_data = [t for t in range(100)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
 
     Assume that the death rate and population size are known, then estimate the rate of spread:
 
-    >>> est = bd.estimate(t_data, p_data, [0.5], [[1e-6, 1]], framework='abc',
-    ...                   model='Verhulst 2 (SIS)', known_p=[0.25, 50], idx_known_p=[1, 2],
-    ...                   seed=2021,se_type='asymptotic')
-    abc estimate is [0.7646241797553208] , with standard errors [[0.14851339]] computed in  4.3329997062683105 seconds.
+    >>> import birdepy as bd
+    >>> t_data = [t for t in range(100)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
+    >>> est = bd.estimate(t_data, p_data, [0.5], [[0,1]], framework='abc',
+    ...                   model='Ricker', idx_known_p=[1, 2, 3],
+    ...                   known_p=[0.25, 0.02, 1], display=True, its=2, seed=2021)
+    >>> print('abc estimate is', est.p, ', with standard errors', est.se,
+    ...       'computed in ', est.compute_time, 'seconds.')
+    abc estimate is [0.7445234348233319] , with standard errors [[0.06708738]] computed in  47.6836621761322 seconds.
 
     Notes
     -----

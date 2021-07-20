@@ -1,21 +1,8 @@
 import numpy as np
 import birdepy.utility as ut
-from scipy.optimize import root_scalar
 
 
-def p_mat_bld_Erlang(q_mat, t, eps, _k, num_states):
-    if eps is not None:
-        m = np.max(np.absolute(np.diag(q_mat)))
-        _k = root_scalar(lambda k: eps * m + np.exp(k * eps / t) *
-                                   (1 - eps / t) ** k + np.exp(-k * eps / t) *
-                                   (1 + eps / t) ** k,
-                         _k,
-                         _k + 10)
-    r_matrix = (_k / t) * np.linalg.inv((_k / t) * np.eye(num_states) - q_mat)
-    return np.linalg.matrix_power(r_matrix, _k)
-
-
-def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
+def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *Erlangization* method.
 
@@ -39,18 +26,13 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
 
     k : int, optional
         Number of terms to include in approximation to probability. If `eps` 
-        is not None, then this is determined dynamically. 
-
-    eps : scalar, optional
-        Error bound on probability. 
+        is not None, then this is determined dynamically.
 
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='Erlang')[0][0]
-    0.02773268796308342
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='Erlang')[0][0]
-    0.0016455223175386804
+    ... bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='Erlang')[0][0]
+    0.002731464736623327
 
     Notes
     -----
@@ -89,13 +71,14 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
 
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
-        p_mat = p_mat_bld_Erlang(q_mat, t, cut_meth, eps, k, num_states)
+        r_mat = (k / t) * np.linalg.inv((k / t) * np.eye(num_states) - q_mat)
+        p_mat = np.linalg.matrix_power(r_mat, k)
         output = p_mat[np.ix_(z0 - z_min, zt - z_min)]
     else:
         output = np.zeros((t.size, z0.size, zt.size))
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
-            p_mat = p_mat_bld_Erlang(q_mat, t[idx], cut_meth, eps,
-                                     k, num_states)
+            r_mat = (k / t[idx]) * np.linalg.inv((k / t[idx]) * np.eye(num_states) - q_mat)
+            p_mat = np.linalg.matrix_power(r_mat, k)
             output[idx, :, :] = p_mat[np.ix_(z0 - z_min, zt - z_min)]
     return output

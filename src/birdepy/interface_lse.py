@@ -48,20 +48,17 @@ def discrete_est_lse(data, squares, model, b_rate, d_rate, z_trunc,
     that p[0] > p[1] (i.e., rate of spread greater than recovery rate).
 
     >>> import birdepy as bd
-    ... t_data = [t for t in range(100)]
-    ... p_data = bd.simulate.discrete([0.75, 0.25, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True,
-    ...                               seed=2021)
-    ... for squares in ['expm', 'fm', 'gwa']:
-    ...     est = bd.estimate(t_data, p_data, [0.51, 0.5], [[1e-6, 1], [1e-6, 1]],
-    ...                       framework='lse', squares=squares, model='Verhulst 2 (SIS)',
-    ...                       known_p=[50], idx_known_p=[2],
-    ...                       con={'type': 'ineq', 'fun': lambda p: p[0]-p[1]})
-    ...     print('LSE estimate using', squares, 'is', est.p, ', computed in ', est.compute_time,
-    ...           'seconds.')
-    LSE estimate using expm is [0.9518853583017443, 0.31399108634106315] , computed in  0.5210022926330566 seconds.
-    LSE estimate using fm is [0.8523239928832193, 0.2796039852281925] , computed in  1.1931242942810059 seconds.
-    LSE estimate using gwa is [0.7084033634201875, 0.23080799483220513] , computed in  0.021984338760375977 seconds.
+    >>> t_data = [t for t in range(100)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
+    >>> for squares in ['expm', 'fm', 'gwa']:
+    >>>     est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
+    ...                       framework='lse', model='Ricker', idx_known_p=[3], known_p=[1],
+    ...                       squares=squares)
+    >>>     print('lse estimate using', squares, 'is', est.p, 'computed in ', est.compute_time, 'seconds.')
+    lse estimate using expm is [0.7879591925854611, 0.26289368236374644, 0.02000871498805996] computed in  1.2579967975616455 seconds.
+    lse estimate using fm is [0.7941603523732229, 0.2766621569715867, 0.019363240909074483] computed in  5.483000755310059 seconds.
+    lse estimate using gwa is [0.7024952317382023, 0.20563650045779058, 0.022598851311981704] computed in  0.09800028800964355 seconds.
 
     Notes
     -----

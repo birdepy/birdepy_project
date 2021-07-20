@@ -37,12 +37,12 @@ def sq_bld(data, b_rate, d_rate):
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
-    osolver_methods = ['RK45', 'Radau', 'RK23', 'BDF', 'DOP853']
+    solver_methods = ['RK45', 'Radau', 'RK23', 'BDF', 'DOP853']
 
     def error_fun(param):
         err = 0
         for i in data:
-            for meth in osolver_methods:
+            for meth in solver_methods:
                 fluid_path = solve_ivp(
                     lambda t, z: b_rate(z, param) - d_rate(z, param),
                     [0, i[2]+1e-100],

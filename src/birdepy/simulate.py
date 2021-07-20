@@ -19,10 +19,9 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
         Model specifying birth and death rates of process (see :ref:`here
         <Birth-and-death Processes>`). Should be one of:
 
-            - 'Verhulst 1' (default)
-            - 'Verhulst 2 (SIS)'
-            - 'Ricker 1'
-            - 'Beverton-Holt'
+            - 'Verhulst' (default)
+            - 'Verhulst'
+            - 'Ricker'
             - 'Hassell'
             - 'MS-S'
             - 'pure-birth'
@@ -96,21 +95,6 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
     >>> import birdepy as bd
     >>> bd.simulate.discrete(1, 'Poisson', 0, times=[0, 1, 3, 4, 5])
     [0, 1, 3, 5, 5]
-
-    Now simulate 5 sample paths of an *Verhulst 2 (SIS)* model with rate of spread 1,
-    recovery rate 0.5 and a population of 1000 individuals, starting with 100
-    infected individuals:
-
-    >>> obs_times = [t for t in range(100)]
-    >>> pop_sizes = bd.simulate.discrete([1, 0.5, 1000], model='Verhulst 2 (SIS)', z0=100, times=obs_times, k=5)
-
-    The results can be plotted:
-
-    >>> import matplotlib.pyplot as plt
-    >>> plt.step(obs_times, pop_sizes.T, 'r', where='post')
-    >>> plt.ylabel('infected population')
-    >>> plt.xlabel('day')
-    >>> plt.show()
 
     Notes
     -----
@@ -374,9 +358,8 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
         Model specifying birth and death rates of process (see :ref:`here
         <Birth-and-death Processes>`). Should be one of:
 
-            - 'Verhulst 1'
-            - 'Verhulst 2 (SIS)'
-            - 'Ricker 1'
+            - 'Verhulst'
+            - 'Ricker'
             - 'Beverton-Holt'
             - 'Hassell'
             - 'MS-S'
@@ -444,22 +427,6 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
     >>> print(pop_sizes)
     [0, 0.0664050052043501, 0.48462937097695785, 2.2065719224651157]
     [0, 1, 2, 3]
-
-    Now simulate 5 sample paths of an *Verhulst 2 (SIS)* model with rate of spread 1,
-    recovery rate 0.5 and a population of 1000 individuals, starting with 100
-    infected individuals:
-
-    >>> jump_times, pop_sizes = bd.simulate.continuous([1, 0.5, 1000], model='Verhulst 2 (SIS)', z0=100,
-    ...                                                 b_rate=100, k=5)
-
-    The results can be plotted:
-
-    >>> import matplotlib.pyplot as plt
-    >>> for i in range(5):
-    ...    plt.step(jump_times[i], pop_sizes[i], 'r', where='post')
-    >>> plt.ylabel('infected population')
-    >>> plt.xlabel('day')
-    >>> plt.show()
 
     Notes
     -----

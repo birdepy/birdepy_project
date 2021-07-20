@@ -3,18 +3,106 @@ from birdepy import simulate
 import birdepy.utility as ut
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import warnings
+from scipy.integrate import solve_ivp
 
 
-def forecast(z0, times, param, model,
+def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng):
+    while True:
+        # First obtain proposal satisfying bounds:
+        while True:
+            param_prop = rng.multivariate_normal(param, cov)
+            cond = True
+            for bd_idx, bd in enumerate(p_bounds):
+                if param_prop[bd_idx] > bd[1] or \
+                        param_prop[bd_idx] < bd[0]:
+                    cond = False
+            if not cond:
+                continue
+            break
+        # Then check proposal also satisfies constraints:
+        if type(con) == dict:
+            # If there is one constraint specified
+            if con['fun'](param_prop) < 0:
+                continue
+        else:
+            # If there is strictly more than one or 0 constraints specified
+            cond = True
+            for c in con:
+                if c['fun'](param_prop) < 0:
+                    cond = False
+            if not cond:
+                continue
+        break
+    param_prop = ut.p_bld(np.array(param_prop), idx_known_p, known_p)
+    return param_prop
+
+
+def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
+               shift_times, n, rng):
+    if method == 'fm':
+        if callable(z0):
+            z0_ = z0()
+        else:
+            z0_ = z0
+        for solver_method in solver_methods:
+            fluid_path = solve_ivp(
+                lambda t, z: b_rate(z, param) - d_rate(z, param),
+                [0, shift_times[-1]],
+                [z0_],
+                t_eval=shift_times,
+                method=solver_method)
+            if fluid_path.success:
+                forecasted_mean = fluid_path.y[0]
+                break
+    elif method in ['exact', 'ea', 'ma', 'gwa']:
+        forecasted_mean = np.zeros(len(shift_times))
+        for idx in range(n):
+            forecasted_mean += simulate.discrete(param, 'custom', z0,
+                                                 shift_times,
+                                                 b_rate=b_rate,
+                                                 d_rate=d_rate, k=1,
+                                                 method=method,
+                                                 seed=rng)
+        forecasted_mean = np.divide(forecasted_mean, n)
+    return forecasted_mean
+
+
+def forecast(model, z0, times, param, cov=None, interval='confidence', method=None,
              percentiles=[0, 0.01, 0.2, 2.3, 15.9, 50, 84.1, 97.7, 99.8, 99.9, 100],
-             cov=None, p_bounds=None, con=(), known_p=(), idx_known_p=(),
-             sim_method='gwa', k=10 ** 3, seed=None, colormap=cm.Purples,
-             xlabel='Time', ylabel='Forecast Population',
+             p_bounds=None, con=(), known_p=(), idx_known_p=(),
+             k=10 ** 3, n=10 ** 3, seed=None, colormap=cm.Purples,
+             xlabel='Time', ylabel='default', xticks='default',
              rotation=45, display=False, **options):
     """Simulation based forecasting for continuous-time birth-and-death processes.
+    Produces a plot of the likely range of mean population sizes subject to parameter uncertainty
+    (confidence intervals) or the likely range of population sizes subject to parameter
+    uncertainty and model stochasticity (prediction intervals).
 
     Parameters
     ----------
+    model : string, optional
+        Model specifying birth and death rates of process (see :ref:`here
+        <Birth-and-death Processes>`). Should be one of:
+
+            - 'Verhulst' (default)
+            - 'Ricker'
+            - 'Hassell'
+            - 'MS-S'
+            - 'Moran'
+            - 'pure-birth'
+            - 'pure-death'
+            - 'Poisson'
+            - 'linear'
+            - 'linear-migration'
+            - 'M/M/1'
+            - 'M/M/inf'
+            - 'loss-system'
+            - 'custom'
+
+         If set to 'custom', then kwargs `b_rate` and `d_rate` must also be
+         specified. See :ref:`here <Custom Models>` for more information.
+
     z0: int or callable
         The population for each sample path at the time of the first element
         of the argument of `times`.
@@ -33,41 +121,33 @@ def forecast(z0, times, param, model,
         parameters.
         When `cov` is provided this is taken to be a mean value.
 
-    model : string, optional
-        Model specifying birth and death rates of process (see :ref:`here
-        <Birth-and-death Processes>`). Should be one of:
+    cov : array_like, optional
+        The parameters are assumed to follow a truncated normal distribution
+        with this covariance. If this is specified, then p_bounds should also be
+        specified to avoid unwanted parameters.
 
-            - 'Verhulst 1' (default)
-            - 'Verhulst 2 (SIS)'
-            - 'Ricker 1'
-            - 'Ricker 2'
-            - 'Beverton-Holt'
-            - 'Hassell'
-            - 'MS-S'
-            - 'Moran'
-            - 'pure-birth'
-            - 'pure-death'
-            - 'Poisson'
-            - 'linear'
-            - 'linear-migration'
-            - 'M/M/1'
-            - 'M/M/inf'
-            - 'loss-system'
-            - 'custom'
+    interval : string, optional
+        Type of forecast. Should be one of 'confidence' (default) or
+        'prediction'. Confidence intervals show the likely range of mean future
+        population values, reflecting parameter uncertainty. Prediction interals
+        show the likely range of future population values, incorporating
+        parameter uncertainty and model stochasticity.
 
-         If set to 'custom', then kwargs `b_rate` and `d_rate` must also be
-         specified. See :ref:`here <Custom Models>` for more information.
+    method : string, optional
+        Method used to generate samples. For confidence intervals samples are
+        trajectories of future expected values. For prediction intervals
+        samples are trajectories of future population values. Should be one of:
+
+            - 'fm' (default for confidence intervals)
+            - 'exact'
+            - 'ea'
+            - 'ma'
+            - 'gwa' (default for prediction intervals)
 
     percentiles : list, optional
         List of percentiles to split data into for displaying. The default values
         split the data at 1, 2, and 3 standard deviations from the mean in both
         directions.
-
-    cov : array_like, optional
-        The parameters are assumed to follow a truncated normal distribution
-        with this covariance. If this is specified, then p_bounds should also be
-        specified to avoid unwanted parameters. Incorporating uncertainty into
-        parameters means that forecasted intervals will typically be substantially wider.
 
     p_bounds : list
         Bounds on parameters. Should be specified as a sequence of
@@ -90,17 +170,16 @@ def forecast(z0, times, param, model,
         `known_p` must also be specified. See :ref:`here <Known Parameters>`
         for more information.
 
-    sim_method : string, optional
-        Simulation algorithm used to generate samples (see
-        :ref:`here<Simulation Algorithms>`). Should be one of:
-
-            - 'exact' (default)
-            - 'ea'
-            - 'ma'
-            - 'gwa'
-
     k : int, optional
-        Number of sample paths used to generate forecast.
+        Number of samples used to generate forecast. For confidence intervals
+        each sample corresponds to an estimate of the mean for a sampled
+        parameter value. For prediction intervals each sample corresponds to
+        a trajectory of population size for a sampled parameter value.
+
+    n : int, optional
+        Number of samples used to estimate each sample of a mean for confidence
+        interval samples. Only applicable when method is 'exact', 'ea', 'ma'
+        or 'gwa'.
 
     seed : int, Generator, optional
         If *seed* is not specified the random numbers are generated according
@@ -118,6 +197,9 @@ def forecast(z0, times, param, model,
     ylabel : str, optional
         Label for y axis of plot.
 
+    xticks : array_like, optional
+        Locations of x ticks.
+
     rotation : int, optional
         Rotation of x tick labels.
 
@@ -126,22 +208,25 @@ def forecast(z0, times, param, model,
 
     Examples
     --------
-    First simulate some sample paths of a Verhulst 2 (SIS) model using
-    :func:`birdepy.simulate.discrete()`:
+    First simulate some sample paths using :func:`birdepy.simulate.discrete()`:
 
     >>> import birdepy as bd
-    ... t_data = [t for t in range(100)]
-    ... p_data = bd.simulate.discrete([0.75, 0.25, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True, seed=2021)
+    >>> t_data = [t for t in range(101)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
 
     Then, using the simulated data, estimate the parameters:
 
-    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5], [[0, 1], [0, 1]], model='Verhulst 2 (SIS)',
-    ...                   known_p=[50], idx_known_p=[2])
+    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+    ...                   model='Ricker', idx_known_p=[3], known_p=[1])
 
     Then, use the estimated parameters and covariances to generate a forecast:
 
-    >>> bd.forecast(86, [t for t in range(1999, 2021, 1)], est.p, model='Ricker',display=True)
+    >>> future_t = [t for t in range(101,151,1)]
+    >>> bd.forecast('Ricker', p_data[-1], future_t, est.p, cov=est.cov,
+    ...             p_bounds=[[0,1], [0,1], [0, 0.1]], idx_known_p=[3], known_p=[1],
+    ...             interval='prediction')
+
 
     Notes
     -----
@@ -173,6 +258,27 @@ def forecast(z0, times, param, model,
     """
     times = np.array(times)
 
+    if type(xticks) is list:
+        xticks = times
+    else:
+        xticks = np.array(xticks)
+
+    if ylabel == 'default':
+        if interval == 'confidence':
+            ylabel = 'Forecast Mean Population'
+        else:
+            ylabel = 'Forecast Population'
+
+    if interval == 'confidence' and method is None:
+        method = 'fm'
+    elif interval == 'prediction' and method is None:
+        method = 'gwa'
+    elif interval == 'prediction' and method == 'fm':
+        TypeError("Argument of `method` equal 'fm' not possible when argument "
+                  "of `interval` equals 'prediction'.")
+
+    shift_times = times - times[0]
+
     if type(cov) == float or type(cov) == int:
         cov = [[cov]]
 
@@ -190,68 +296,73 @@ def forecast(z0, times, param, model,
 
     #
 
-    if cov is None:
-        param = ut.p_bld(np.array(param), idx_known_p, known_p)
-        sampled_data = np.array(simulate.discrete(param, 'custom', z0, times-times[0],
-                                                  b_rate=b_rate, d_rate=d_rate,
-                                                  k=k, method=sim_method,
-                                                  seed=rng))
+    solver_methods = ['RK45', 'Radau', 'RK23', 'BDF', 'DOP853']
+
+    fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
+
+    if interval == 'confidence':
+        if cov is None:
+            warnings.warn("Confidence intervals show the likely range of the mean "
+                          "future population level given the uncertainty of the "
+                          "parameter values, however since argument `cov` has value "
+                          "None no uncertainty in parameter values has been specified.",
+                          category=RuntimeWarning)
+            forecast_ = mean_curve(param, b_rate, d_rate, method, z0,
+                                   solver_methods, shift_times, n, rng)
+            ax1.plot(times, forecast_, color='k')
+        else:
+            samples = np.zeros((k, times.shape[0]))
+            for idx in range(k):
+                param_prop = parameter_sampler(param, cov, p_bounds, known_p,
+                                               idx_known_p, con, rng)
+                samples[idx, :] = mean_curve(param_prop, b_rate, d_rate,
+                                             method, z0, solver_methods,
+                                             shift_times, n, rng)
+                if display:
+                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
+    elif interval == 'prediction':
+        samples = np.zeros((k, times.shape[0]))
+        if cov is None:
+            for idx in range(k):
+                samples[idx, :] = simulate.discrete(param, 'custom', z0,
+                                                    shift_times,
+                                                    b_rate=b_rate,
+                                                    d_rate=d_rate, k=1,
+                                                    method=method,
+                                                    seed=rng)
+                if display:
+                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
+        else:
+            for idx in range(k):
+                param_prop = parameter_sampler(param, cov, p_bounds, known_p,
+                                               idx_known_p, con, rng)
+                samples[idx, :] = simulate.discrete(param_prop, 'custom', z0,
+                                                    shift_times,
+                                                    b_rate=b_rate,
+                                                    d_rate=d_rate, k=1,
+                                                    method=method,
+                                                    seed=rng)
+                if display:
+                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
     else:
-        sampled_data = np.zeros((k, times.shape[0]))
-        for idx in range(k):
-            while True:
-                # First obtain proposal satisfying bounds:
-                while True:
-                    param_prop = rng.multivariate_normal(param, cov)
-                    cond = True
-                    for bd_idx, bd in enumerate(p_bounds):
-                        if param_prop[bd_idx] > bd[1] or \
-                                param_prop[bd_idx] < bd[0]:
-                            cond = False
-                    if not cond:
-                        continue
-                    break
-                # Then check proposal also satisfies constraints:
-                if type(con) == dict:
-                    # If there is one constraint specified
-                    if con['fun'](param_prop) < 0:
-                        continue
-                else:
-                    # If there is strictly more than one or 0 constraints specified
-                    cond = True
-                    for c in con:
-                        if c['fun'](param_prop) < 0:
-                            cond = False
-                    if not cond:
-                        continue
-                break
-            param_prop = ut.p_bld(np.array(param_prop), idx_known_p, known_p)
-            sampled_data[idx, :] = np.array(simulate.discrete(param_prop, 'custom', z0, times-times[0],
-                                                              b_rate=b_rate, d_rate=d_rate,
-                                                              k=1, method=sim_method,
-                                                              seed=rng))
-            if display:
-                print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
+        raise TypeError("Argument 'interval' has an unknown value.")
 
-    n = len(percentiles)
-
-    SDist = np.zeros((times.shape[0], n))
-    for i in range(n):
+    m = len(percentiles)
+    SDist = np.zeros((times.shape[0], m))
+    for i in range(m):
         for t in range(times.shape[0]):
-            SDist[t, i] = np.percentile(sampled_data[:, t], percentiles[i])
+            SDist[t, i] = np.percentile(samples[:, t], percentiles[i])
 
-    half = int((n - 1) / 2)
+    half = int((m - 1) / 2)
 
-    fig, (ax1) = plt.subplots(nrows=1, ncols=1, sharex=True, figsize=(8, 4))
     fig.canvas.draw()
-    ax1.plot(np.arange(0, times.shape[0], 1), SDist[:, half], color='k')
+    ax1.plot(times, SDist[:, half], color='k')
     for i in range(half):
-        ax1.fill_between(np.arange(0, times.shape[0], 1), SDist[:, i], SDist[:, -(i + 1)],
-                         color=colormap(i / half))
+        ax1.fill_between(times, SDist[:, i], SDist[:, -(i + 1)], color=colormap(i / half))
     ax1.tick_params(labelsize=11.5)
     ax1.set_xlabel(xlabel, fontsize=14)
-    ax1.set_xticks(times-times[0])
-    labels = [f'{t}' for t in times]
+    ax1.set_xticks(xticks)
+    labels = [f'{t}' for t in xticks]
     ax1.set_xticklabels(labels, rotation=rotation)
     ax1.set_ylabel(ylabel, fontsize=14)
     fig.tight_layout()

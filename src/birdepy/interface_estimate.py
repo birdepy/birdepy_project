@@ -12,7 +12,7 @@ from birdepy.interface_aug import f_fun_bld as f_fun_bld
 from birdepy import simulate
 
 
-def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
+def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
              scheme='discrete', con=(), known_p=(), idx_known_p=(),
              se_type='asymptotic', ci_plot=False, display=False, **options):
     """Parameter estimation for (continuously or discretely observed)
@@ -54,11 +54,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
         Model specifying birth and death rates of process (see :ref:`here
         <Birth-and-death Processes>`). Should be one of:
 
-            - 'Verhulst 1' (default)
-            - 'Verhulst 2 (SIS)'
-            - 'Ricker 1'
-            - 'Ricker 2'
-            - 'Beverton-Holt'
+            - 'Verhulst' (default)
+            - 'Ricker'
             - 'Hassell'
             - 'MS-S'
             - 'Moran'
@@ -126,29 +123,51 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
 
     Examples
     --------
+    Example 1: Simulate a discretely observed sample path and estimate the parameters using the
+    alternative frameworks.
     First simulate some sample paths of a Verhulst 2 (SIS) model using
     :func:`birdepy.simulate.discrete()`:
 
     >>> import birdepy as bd
-    ... t_data = [t for t in range(100)]
-    ... p_data = bd.simulate.discrete([0.75, 0.25, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True, seed=2021)
+    >>> t_data = [t for t in range(100)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
 
     Then, using the simulated data, estimate the parameters using 'dnm', 'lse'
     and 'em' as the argument of `framework`:
 
-    >>> est_dnm = bd.estimate(t_data, p_data, [0.5, 0.5], [[0, 1], [0, 1]], framework='dnm',
-    ...                       model='Verhulst 2 (SIS)', known_p=[50], idx_known_p=[2])
-    ... est_lse = bd.estimate(t_data, p_data, [0.5, 0.5], [[0, 1], [0, 1]], framework='lse',
-    ...                       model='Verhulst 2 (SIS)', known_p=[50], idx_known_p=[2])
-    ... est_em = bd.estimate(t_data, p_data, [0.5, 0.5], [[0, 1], [0, 1]], framework='em',
-    ...                      model='Verhulst 2 (SIS)', known_p=[50], idx_known_p=[2])
-    ... print('dnm estimate:', est_dnm.p, ', dnm standard errors:', est_dnm.se)
-    ... print('LSE estimate:', est_lse.p)
-    ... print('EM estimate:', est_em.p, ', EM standard errors:', est_em.se)
-    dnm estimate: [0.7962983621774992, 0.26216446628631335] , dnm standard errors: [0.14114672050101157, 0.04776778708375696]
-    LSE estimate: [0.8523238695211792, 0.2796039376121537]
-    EM estimate: [0.8388286753795531, 0.27656951463387863] , EM standard errors: [0.15783398923885109, 0.05340977297580156]
+    >>> est_dnm = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+    ...                       framework='dnm', model='Ricker', idx_known_p=[3], known_p=[1])
+    >>> est_em = bd.estimate(t_data, p_data, [1, 0.5, 0.05], [[0,1], [0,1], [1e-6,0.1]],
+    ...                       framework='em', model='Ricker', idx_known_p=[3], known_p=[1])
+    >>> est_abc = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+    ...                       framework='abc', model='Ricker', idx_known_p=[3], known_p=[1])
+    >>> est_lse = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+    ...                       framework='lse', model='Ricker', idx_known_p=[3], known_p=[1], se_type='simulated')
+    >>> print('abc estimate:', est_abc.p, ', abc standard errors:', est_abc.se)
+    >>> print('dnm estimate:', est_dnm.p, ', dnm standard errors:', est_dnm.se)
+    >>> print('lse estimate:', est_lse.p, ', lse standard errors:', est_lse.se)
+    >>> print('em estimate:', est_em.p, ', em standard errors:', est_em.se)
+    abc estimate: [0.5237212840549004, 0.15633742500248485, 0.04781193037194212] , abc standard errors: [0.26827164 0.13484149 0.02876892]
+    dnm estimate: [0.7477212189824904, 0.2150484536334751, 0.022745124483227304] , dnm standard errors: [0.16904225 0.03443199 0.00433567]
+    em estimate: [0.7375802511179848, 0.19413965548145604, 0.024402343633644553] , em standard errors: [0.15742852 0.02917437 0.00429763]
+    lse estimate: [0.7941741586214265, 0.2767698457541133, 0.01935636627568731] , lse standard errors: [0.1568291  0.19470746 0.01243208]
+
+    Alternatively, we may be interested in continuously observed data.
+
+    Example 2: Simulate a continuous sample path and estimate the parameters.
+
+    Simulate some synthetic data:
+
+    >>> t_data, p_data = bd.simulate.continuous([0.75, 0.25, 0.02, 1], 'Ricker', 10,
+    ...                                         100, survival=True, seed=2021)
+
+    Estimate:
+
+    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+    ...                   model='Ricker', idx_known_p=[3], known_p=[1], scheme='continuous')
+    >>> print(est.p)
+    [0.7603171062895576, 0.2514810854871476, 0.020294342655751033]
 
     Notes
     -----
@@ -255,7 +274,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
             if 'eps0' in options.keys():
                 eps0 = options['eps0']
             else:
-                eps0 = 5
+                eps0 = 10
                 options['eps0'] = eps0
             if 'k' in options.keys():
                 k = options['k']
@@ -359,7 +378,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
             if 'max_it' in options.keys():
                 max_it = options['max_it']
             else:
-                max_it = 100
+                max_it = 25
             if 'i_tol' in options.keys():
                 i_tol = options['i_tol']
             else:
@@ -431,17 +450,18 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
     # Compute confidence regions and standard errors
     if se_type == 'asymptotic':
         if framework == 'lse':
-            raise TypeError("Asymptotic confidence intervals are not available"
-                            "for `framework' 'lse'. Set argument `ci` to 'none'"
-                            "or 'simulated'.")
-        # For frameworks 'abc', 'dnm' and 'em', use cov value computed above
-        try:
-            se = np.sqrt(np.diag(cov))
-        except:
-            se = 'Error computing standard errors. Covariance matrix may have' \
-                 'negative diagonal entries.'
-        if ci_plot:
-            ut.confidence_region(mean=p_est, cov=cov, se_type=se_type)
+            se = "Asymptotic confidence intervals are not available for " \
+                 "`framework' 'lse'. Set argument `se_type` to 'none'" \
+                 "or 'simulated'."
+        else:
+            # For frameworks 'abc', 'dnm' and 'em', use cov value computed above
+            try:
+                se = np.sqrt(np.diag(cov))
+            except:
+                se = 'Error computing standard errors. Covariance matrix may have' \
+                     'negative diagonal entries.'
+            if ci_plot:
+                ut.confidence_region(mean=p_est, cov=cov, se_type=se_type)
     elif se_type == 'simulated':
         if 'num_bs_samples' in options.keys():
             num_bs_samples = options['num_bs_samples']
@@ -503,7 +523,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
         try:
             se = np.sqrt(np.diag(cov))
         except:
-            se = 'Error computing standard errors. Covariance matrix may have' \
+            se = 'Error computing standard errors. Covariance matrix may have ' \
                  'negative diagonal entries.'
         if ci_plot:
             try:
@@ -520,8 +540,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst 1',
         raise TypeError("Argument `se_type` has an unknown value. Possible "
                         "options are 'none', 'asymptotic' and 'simulated' ")
 
-    capacity_finder = ut.higher_zf_bld(model)
-    capacity = capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p))
+    
+    if model != 'custom':
+        capacity_finder = ut.higher_zf_bld(model)
+        capacity = capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p))
+    else:
+        capacity = "Functionality not available for custom models."
 
     return EstimationOutput(p=list(p_est), capacity=capacity, err=err, cov=cov,
                             se=se, compute_time=time.time() - tic,
