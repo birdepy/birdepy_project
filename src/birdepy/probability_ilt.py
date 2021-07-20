@@ -218,10 +218,8 @@ def probability_ilt(z0, zt, t, param, b_rate, d_rate, lentz_eps, laplace_method,
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='ilt')[0][0]
-    0.027836532672791882
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='ilt')[0][0]
-    0.0016460890596731762
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='ilt')[0][0]
+    0.0027403264310572615
 
     Notes
     -----

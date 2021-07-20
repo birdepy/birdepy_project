@@ -24,12 +24,11 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
         Model specifying birth and death rates of process (see :ref:`here
         <Birth-and-death Processes>`). Should be one of:
 
-            - 'Verhulst 1' (default)
-            - 'Verhulst 2 (SIS)'
-            - 'Ricker 1'
-            - 'Beverton-Holt'
+            - 'Verhulst' (default)
+            - 'Ricker'
             - 'Hassell'
             - 'MS-S'
+            - 'Moran'
             - 'pure-birth'
             - 'pure-death'
             - 'Poisson'
@@ -77,7 +76,9 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
     Notes
     -----
     This function requires a compatible Nvidia graphics processing unit and
-    drivers to be installed. For more information see :ref:`here <CUDA User Guide>`.
+    drivers to be installed.
+
+    The packages `Numba` and `cudatoolkit` also need to be installed.
 
     If you use this function for published work, then please cite [1].
 
@@ -109,17 +110,11 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
     blocks = int(1 + k / threads_per_block)
     rng_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=seed)
     out = np.zeros(threads_per_block * blocks, dtype=np.int64)
-    if model == 'Verhulst 1':
-        discrete_verhulst1[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
-        return out
-    elif model == 'Verhulst 2 (SIS)':
-        discrete_verhulst2[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
+    if model == 'Verhulst':
+        discrete_verhulst[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
         return out
     elif model == 'Ricker':
         discrete_ricker[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
-        return out
-    elif model == 'Beverton-Holt':
-        discrete_bh[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
         return out
     elif model == 'Hassell':
         discrete_hassell[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
@@ -183,10 +178,8 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
         Model specifying birth and death rates of process (see :ref:`here
         <Birth-and-death Processes>`). Should be one of:
 
-            - 'Verhulst 1' (default)
-            - 'Verhulst 2 (SIS)'
+            - 'Verhulst' (default)
             - 'Ricker'
-            - 'Beverton-Holt'
             - 'Hassell'
             - 'MS-S'
             - 'Moran'
@@ -233,7 +226,9 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
     Notes
     -----
     This function requires a compatible Nvidia graphics processing unit and
-    drivers to be installed. For more information see :ref:`here <CUDA User Guide>`.
+    drivers to be installed.
+
+    The packages `Numba` and `cudatoolkit` also need to be installed.
 
     If you use this function for published work, then please cite [1].
 
@@ -289,51 +284,14 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
 
 
 @cuda.jit
-def discrete_verhulst1(out, rng_states, p, z0, time, survival):
+def discrete_verhulst(out, rng_states, p, z0, time, survival):
     thread_id = cuda.grid(1)
 
     def b_rate(z):
-        return p[0] * z
+        return p[0] * (1 - p[2]*z/p[4]) * z
 
     def d_rate(z):
-        return p[1] * z + z ** 2 * (p[0] - p[1]) / p[2]
-
-    while True:
-        pop = z0
-        rate = b_rate(pop) + d_rate(pop)
-        if rate == 0:
-            next_event_time = math.inf
-        else:
-            next_event_time = -math.log(rand(rng_states, thread_id)) / rate
-        while next_event_time <= time:
-            if (rand(rng_states, thread_id) * rate) <= b_rate(pop):
-                pop += 1
-            else:
-                pop -= 1
-            rate = b_rate(pop) + d_rate(pop)
-            if rate > 0:
-                next_event_time += -math.log(rand(rng_states, thread_id)) / rate
-            else:
-                next_event_time = math.inf
-        if (survival and pop > 0) or not survival:
-            # This conditions on survival of the population for the
-            # monitoring period
-            break
-    out[thread_id] = pop
-
-
-@cuda.jit
-def discrete_verhulst2(out, rng_states, p, z0, time, survival):
-    thread_id = cuda.grid(1)
-
-    def b_rate(z):
-        if z <= p[2]:
-            return (p[0] * z * (1 - z / p[2]))
-        else:
-            return 0
-
-    def d_rate(z):
-        return p[1] * z
+        return p[1] * (1 + p[3]*z/p[4]) * z
 
     while True:
         pop = z0
@@ -364,7 +322,7 @@ def discrete_ricker(out, rng_states, p, z0, time, survival):
     thread_id = cuda.grid(1)
 
     def b_rate(z):
-        return p[0] * math.exp(-p[2] * z) * z ** p[3]
+        return p[0] * math.exp(-(p[2] * z) ** p[3]) * z
 
     def d_rate(z):
         return p[1] * z

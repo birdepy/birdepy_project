@@ -21,7 +21,7 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
 
         birdepy.estimate(t_data, p_data, p0, p_bounds, framework='em', technique='expm',
                          accelerator='none', likelihood='expm', laplace_method='cme-talbot',
-                         lentz_eps=1e-6, max_it=100, i_tol=1e-3, j_tol=1e-2, h_tol=1e-2,
+                         lentz_eps=1e-6, max_it=25, i_tol=1e-2, j_tol=1e-1, h_tol=1e-2,
                          z_trunc=())
 
     The parameters associated with this framework (listed below) can be
@@ -109,9 +109,9 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     model:
 
     >>> import birdepy as bd
-    ... t_data = [t for t in range(101)]
-    ... p_data = bd.simulate.discrete([0.75, 0.25, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True, seed=2021)
+    >>> t_data = [t for t in range(100)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
 
     Estimate the parameter values from the simulated data using the 'em'
     `framework` with various `technique` and `accelerator` approaches.
@@ -128,21 +128,21 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     ...         print('EM estimate using', technique, 'for the E step and accelerated using',
     ...               accelerator, 'is', est.p, ', with standard errors,', est.se, 'computed in ',
     ...               est.compute_time, 'seconds.')
-    EM estimate using expm for the E step and accelerated using cg is [0.7911758355934105, 0.2607065353101489] , with standard errors, [0.1398173855507341, 0.04724764089900021] computed in  5.587975025177002 seconds.
-    EM estimate using expm for the E step and accelerated using none is [0.7562895211323447, 0.24882912255899323] , with standard errors, [0.12731310487503664, 0.04301201346542015] computed in  3.4531261920928955 seconds.
-    EM estimate using expm for the E step and accelerated using Lange is [0.7733459409729658, 0.25461428782838186] , with standard errors, [0.1332910238500653, 0.045033134908424866] computed in  7.103873252868652 seconds.
-    EM estimate using expm for the E step and accelerated using qn1 is [0.7886627860789852, 0.2597730304849001] , with standard errors, [0.1388575364884201, 0.046908181219302354] computed in  20.832000970840454 seconds.
-    EM estimate using expm for the E step and accelerated using qn2 is [0.7587393256166609, 0.25024628818109695] , with standard errors, [0.12830070363858007, 0.04345017895450009] computed in  7.136000394821167 seconds.
-    EM estimate using ilt for the E step and accelerated using cg is [0.7558591808776457, 0.24854327966688333] , with standard errors, [0.12576969518708098, 0.0424882395480794] computed in  1104.4690625667572 seconds.
-    EM estimate using ilt for the E step and accelerated using none is [0.7562749761700945, 0.24882297281798665] , with standard errors, [0.12599386934122933, 0.04258516302745052] computed in  962.6858432292938 seconds.
-    EM estimate using ilt for the E step and accelerated using Lange is [0.7555097362506334, 0.24862937277120378] , with standard errors, [0.1272269310579982, 0.042988940799285905] computed in  1041.1397032737732 seconds.
-    EM estimate using ilt for the E step and accelerated using qn1 is [0.788197564814805, 0.259618410786408] , with standard errors, [0.10485975736464585, 0.03438258069355982] computed in  5611.242366552353 seconds.
-    EM estimate using ilt for the E step and accelerated using qn2 is [0.7584097418820666, 0.24984951128051647] , with standard errors, [0.12583643280098106, 0.04259887320633592] computed in  2109.986832141876 seconds.
-    EM estimate using num for the E step and accelerated using cg is [0.7548547662426597, 0.24835123042276716] , with standard errors, [0.12682011481113273, 0.04284695850057832] computed in  1.6940069198608398 seconds.
-    EM estimate using num for the E step and accelerated using none is [0.7465516258599891, 0.25117757907575317] , with standard errors, [0.1253288712190177, 0.04333901788067031] computed in  2.652000904083252 seconds.
-    EM estimate using num for the E step and accelerated using Lange is [0.7692804131166563, 0.25319321243217735] , with standard errors, [0.13183857502967525, 0.04453435633621586] computed in  3.9630143642425537 seconds.
-    EM estimate using num for the E step and accelerated using qn1 is [0.7494995276023504, 0.2501699698020847] , with standard errors, [0.12585482538969583, 0.04316246641639737] computed in  1.462998867034912 seconds.
-    EM estimate using num for the E step and accelerated using qn2 is [0.7548410527922838, 0.2488101234339709] , with standard errors, [0.12692593805941355, 0.04296466805893693] computed in  2.435025215148926 seconds.
+    EM estimate using expm for the E step and accelerated using cg is [0.796257839100216, 0.2621501062165729] , with standard errors, [0.14112748 0.04776121] computed in  2.9829728603363037 seconds.
+    EM estimate using expm for the E step and accelerated using none is [0.8466397427211018, 0.2792053188489586] , with standard errors, [0.16107783 0.05450446] computed in  12.734002828598022 seconds.
+    EM estimate using expm for the E step and accelerated using Lange is [0.8378718939606143, 0.2765564095359097] , with standard errors, [0.15752948 0.05336882] computed in  2.768000364303589 seconds.
+    EM estimate using expm for the E step and accelerated using qn1 is [0.7958851679071696, 0.2620287325246597] , with standard errors, [0.14098809 0.04771504] computed in  8.574997425079346 seconds.
+    EM estimate using expm for the E step and accelerated using qn2 is [0.8095737016322121, 0.266331221909833] , with standard errors, [0.14610143 0.04937993] computed in  6.400023460388184 seconds.
+    EM estimate using ilt for the E step and accelerated using cg is [0.8564316236063144, 0.28275835207326305] , with standard errors, [0.16248722 0.05507611] computed in  2675.9899156093597 seconds.
+    EM estimate using ilt for the E step and accelerated using none is [0.84650473916156, 0.279158456338403] , with standard errors, [0.15986896 0.05411458] computed in  11955.43051147461 seconds.
+    EM estimate using ilt for the E step and accelerated using Lange is [0.8704531816935857, 0.28709869052795656] , with standard errors, [0.16784804 0.05681519] computed in  1725.5185992717743 seconds.
+    EM estimate using ilt for the E step and accelerated using qn1 is [0.7955017222784072, 0.26189931540268846] , with standard errors, [0.1393653  0.04719352] computed in  9261.022188663483 seconds.
+    EM estimate using ilt for the E step and accelerated using qn2 is [0.8200686674346739, 0.2697731023643679] , with standard errors, [0.14836714 0.05014946] computed in  5234.632050991058 seconds.
+    EM estimate using num for the E step and accelerated using cg is [0.7890713731540463, 0.2597182113856767] , with standard errors, [0.13846018 0.04685984] computed in  7.371973276138306 seconds.
+    EM estimate using num for the E step and accelerated using none is [0.4973491997090579, 0.49863504107284695] , with standard errors, [nan nan] computed in  7.112999200820923 seconds.
+    EM estimate using num for the E step and accelerated using Lange is [0.8248671831473541, 0.2731156038269426] , with standard errors, [0.15254979 0.05187294] computed in  6.22900128364563 seconds.
+    EM estimate using num for the E step and accelerated using qn1 is [0.4996646826148946, 0.49983021134630845] , with standard errors, [nan nan] computed in  3.6879994869232178 seconds.
+    EM estimate using num for the E step and accelerated using qn2 is [0.7961797154938052, 0.26212712511845376] , with standard errors, [0.14109955 0.04775251] computed in  10.855000495910645 seconds.
 
     A ``RuntimeWarning`` associated with SciPy's :func:`minimize` function  may
     appear, this can be ignored.
@@ -230,7 +230,16 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
         p_est[idx] = min(p_bounds[idx][1],
                          max(p_bounds[idx][0], p_est[idx]))
 
-    cov = np.linalg.inv(-ut.Hessian(ll, p_est, p_bounds))
+    if p0.size > 1:
+        try:
+            cov = np.linalg.inv(-ut.Hessian(ll, p_est, p_bounds))
+        except:
+            cov = 'Covariance matrix could not be determined.'
+    else:
+        try:
+            cov = -1/ut.Hessian(ll, p_est, p_bounds)
+        except:
+            cov = 'Covariance matrix could not be determined.'
 
     ll = ll(np.array(p_est))
 

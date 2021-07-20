@@ -1,21 +1,12 @@
 import numpy as np
 import birdepy.utility as ut
-from scipy.optimize import root_scalar
 from scipy.stats import poisson
 
 
-def p_mat_bld_uniform(q_mat, t, eps, _k, num_states):
+def p_mat_bld_uniform(q_mat, t, _k, num_states):
     m = np.amax(np.absolute(np.diag(q_mat)))
     a_mat = np.divide(q_mat, m) + np.eye(num_states)
     w = np.eye(num_states)
-    if eps is not None:
-        _k = int(np.maximum(5,
-                            root_scalar(lambda a: ((a + 1) / (m * t)) **
-                                                  (a + 1) *
-                                                  np.exp(a + 1 - m * t),
-                                        _k,
-                                        _k + 10)
-                            ))
     poisson_terms = poisson.pmf(range(_k + 1), m * t)
     p_mat = np.multiply(w, poisson_terms[0])
     for idx in np.arange(1, _k + 1, 1):
@@ -25,7 +16,7 @@ def p_mat_bld_uniform(q_mat, t, eps, _k, num_states):
     return p_mat
 
 
-def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
+def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *uniformization* method.
 
@@ -51,16 +42,12 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
         Number of terms to include in approximation to probability. If `eps` 
         is not None, then this is determined dynamically. 
 
-    eps : scalar, optional
-        Error bound on probability. 
 
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='uniform')[0][0]
-    0.027849495845785503
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='uniform')[0][0]
-    0.0016461258092143286
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='uniform')[0][0]
+    0.002741422482539626
 
     Notes
     -----
@@ -100,12 +87,12 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k, eps):
 
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
-        p_mat = p_mat_bld_uniform(q_mat, t, eps, k, num_states)
+        p_mat = p_mat_bld_uniform(q_mat, t, k, num_states)
         output = p_mat[np.ix_(z0 - z_min, zt - z_min)]
     else:
         output = np.zeros((t.size, z0.size, zt.size))
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
-            p_mat = p_mat_bld_uniform(q_mat, t[idx], eps, k, num_states)
+            p_mat = p_mat_bld_uniform(q_mat, t[idx], k, num_states)
             output[idx, :, :] = p_mat[np.ix_(z0 - z_min, zt - z_min)]
     return output

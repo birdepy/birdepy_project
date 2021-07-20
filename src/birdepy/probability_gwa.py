@@ -18,10 +18,8 @@ def probability_gwa(z0, zt, t, param, b_rate, d_rate):
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='gwa')[0][0]
-    0.030788446607032095
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='gwa')[0][0]
-    0.004363221877757165
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='gwa')[0][0]
+    0.005653434379437836
 
     Notes
     -----

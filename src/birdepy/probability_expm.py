@@ -27,10 +27,8 @@ def probability_expm(z0, zt, t, param, b_rate, d_rate, z_trunc):
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='expm')[0][0]
-    0.02784949584578541
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='expm')[0][0]
-    0.001646125809214328
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='expm')[0][0]
+    0.0027414224836612463
 
     See also
     --------

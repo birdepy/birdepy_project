@@ -72,7 +72,7 @@ def confidence_region(mean=(), cov=(), obs=None, se_type='asymptotic'):
                        label='Bootstrap\n samples')
         ax.axis([mean[0] - 3.1 * se[0], mean[0] + 3.1 * se[0],
                  mean[1] - 3.1 * se[1], mean[1] + 3.1 * se[1]])
-    elif len(mean) == 1 or obs.shape[1] == 1:
+    elif len(mean) == 1:
         # There is one unknown parameter
         xx = np.linspace(mean - 3.1 * np.sqrt(cov),
                          mean + 3.1 * np.sqrt(cov), 100)
@@ -189,11 +189,9 @@ def data_sort_2(data):
 
 def higher_birth(model):
     if model == 'Verhulst':
-        return lambda z, p: max(p[0] *(1 - p[2]*z/p[4])*z, 0)
+        return lambda z, p: ((p[2]*z) <= 1) * p[0] * (1 - p[2]*z) * z
     elif model == 'Ricker':
         return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * z
-    elif model == 'Beverton-Holt':
-        return lambda z, p: p[0] * p[2] / (z + p[2])
     elif model == 'Hassell':
         return lambda z, p: \
             p[0] * z / (1 + z / p[2]) ** p[3]
@@ -225,8 +223,8 @@ def higher_birth(model):
 
 def higher_death(model):
     if model == 'Verhulst':
-        return lambda z, p: max(p[1] *(1 + p[3]*z/p[4])*z, 0)
-    elif model in ['Ricker', 'Beverton-Holt', 'Hassell',
+        return lambda z, p: p[1] * (1 + p[3]*z) * z
+    elif model in ['Ricker', 'Hassell',
                    'MS-S', 'loss-system', 'linear',
                    'linear-migration', 'M/M/inf']:
         return lambda z, p: p[1] * z
@@ -246,7 +244,7 @@ def higher_death(model):
 
 def higher_h_fun(model):
     if model == 'Verhulst':
-        return lambda z, p: p[0]-p[1]-2*z*(p[0]*p[2]+p[1]*p[3])/p[4]
+        return lambda z, p: p[0]-p[1]-2*z*(p[0]*p[2]+p[1]*p[3])
     elif model == 'Ricker':
         return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * (1 - p[3]*(p[2] * z)**p[3]) - p[1]
     elif model == 'Beverton-Holt':
@@ -281,7 +279,7 @@ def higher_h_fun(model):
 
 def higher_zf_bld(model):
     if model == 'Verhulst':
-        return lambda p: [0, p[4]*(p[0]-p[1])/(p[2]*p[0] + p[1]*p[3])]
+        return lambda p: [0, (p[0]-p[1])/(p[2]*p[0] + p[1]*p[3])]
     elif model == 'Ricker':
         return lambda p: [0, ((np.log(p[0] / p[1]))**(1/p[3])) / p[2]]
     elif model == 'Beverton-Holt':
@@ -494,7 +492,7 @@ def add_options(options):
     if 'gtol' not in options.keys():
         options['gtol'] = 1e-05
     if 'eps' not in options.keys():
-        options['eps'] = 1e-08
+        options['eps'] = None
     if 'maxfun' not in options.keys():
         options['maxfun'] = 15000
     if 'maxiter' not in options.keys():

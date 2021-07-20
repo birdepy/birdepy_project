@@ -27,10 +27,8 @@ def probability_da(z0, zt, t, param, b_rate, d_rate, h_fun, k):
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='da')[0][0]
-    0.02937423095216112
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='da')[0][0]
-    0.0015028016489724214
+    bd.probability(19, 27, 1.0, [0.5, 0.3, 0.01, 0.01], model='Verhulst', method='da')[0][0])
+    0.002266101391343583
 
     Notes
     -----

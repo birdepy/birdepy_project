@@ -42,12 +42,9 @@ def probability_sim(z0, zt, t, param, b_rate, d_rate, k, sim_method, seed):
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='sim', k=10**5,
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='sim', k=10**5,
     ...                seed=2021)[0][0]
-    0.02762
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='sim', k=10**5,
-    ...                seed=2021)[0][0]
-    0.00194
+    0.00294
 
     Notes
     -----

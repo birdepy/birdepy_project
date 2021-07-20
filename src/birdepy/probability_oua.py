@@ -17,10 +17,8 @@ def probability_oua(z0, zt, t, param, b_rate, d_rate, h_fun, zf_bld):
     Examples
     --------
     >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method='oua')[0][0]
-    0.057511543975184994
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method='oua')[0][0]
-    0.0014074199062890974
+    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='oua')[0][0]
+    0.0018882966813798246
 
     Notes
     -----

@@ -37,8 +37,7 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         <Birth-and-death Processes
         >`). Should be one of:
 
-            - 'Verhulst 1' (default)
-            - 'Verhulst 2 (SIS)'
+            - 'Verhulst' (default)
             - 'Ricker'
             - 'Beverton-Holt'
             - 'Hassell'
@@ -87,27 +86,15 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
     --------
     >>> for method in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
     ...     print(method, 'approximation:',
-    ...     probability(19, 27, 1.0, [0.5, 0.3, 100], model='Verhulst 2 (SIS)', method=method)[0][0])
-    da approximation: 0.02937423095216112
-    Erlang approximation: 0.02773268796308342
-    expm approximation: 0.02784949584578541
-    gwa approximation: 0.030788446607032095
-    gwasa approximation: 0.030731643943282434
-    ilt approximation: 0.027836532672791882
-    oua approximation: 0.057511543975184994
-    uniform approximation: 0.027849495845785503
-
-    >>> for method in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
-    ...     print(method, 'approximation:',
-    ...     probability(19, 27, 1.0, [0.5, 0.3, 40], model='Verhulst 2 (SIS)', method=method)[0][0])
-    da approximation: 0.0015028016489724214
-    Erlang approximation: 0.0016455223175386804
-    expm approximation: 0.001646125809214328
-    gwa approximation: 0.004363221877757165
-    gwasa approximation: 0.004354457417019735
-    ilt approximation: 0.0016460890596731762
-    oua approximation: 0.0014074199062890974
-    uniform approximation: 0.0016461258092143286
+    ...     bd.probability(19, 27, 1.0, [0.5, 0.3, 0.01, 0.01], model='Verhulst', method=method)[0][0])
+    da approximation: 0.016040426614336103
+    Erlang approximation: 0.0161337966847677
+    expm approximation: 0.016191045449304713
+    gwa approximation: 0.020086462242852647
+    gwasa approximation: 0.020054484220865178
+    ilt approximation: 0.01618465415009876
+    oua approximation: 0.021627234315268227
+    uniform approximation: 0.016191045442910168
 
     Notes
     -----
@@ -181,12 +168,8 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
             k = options['k']
         else:
             k = 150
-        if 'eps' in options.keys():
-            eps = options['eps']
-        else:
-            eps = None
         return probability_Erlang.probability_Erlang(z0, zt, t, param, b_rate,
-                                                     d_rate, z_trunc, k, eps)
+                                                     d_rate, z_trunc, k)
 
     elif method == 'expm':
         if 'z_trunc' in options.keys():
@@ -269,14 +252,8 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
             k = options['k']
         else:
             k = 150
-        if 'eps' in options.keys():
-            eps = options['eps']
-        else:
-            eps = None
-        return probability_uniform.probability_uniform(z0, zt, t, param,
-                                                       b_rate,
-                                                       d_rate, z_trunc, k,
-                                                       eps)
+        return probability_uniform.probability_uniform(z0, zt, t, param, b_rate,
+                                                       d_rate, z_trunc, k)
     else:
         raise TypeError("Specified 'method' for computing "
                         "probabilities is unknown. Should be one of 'da', "

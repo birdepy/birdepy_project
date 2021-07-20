@@ -1,6 +1,7 @@
 import mpmath as mp
 import numpy as np
 import birdepy.utility as ut
+from birdepy.probability_ilt import laplace_p
 from birdepy.interface_probability import probability
 import birdepy.utility_em as ut_em
 
@@ -22,10 +23,8 @@ def aug_bld_ilt(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
             u = 0.0
         else:
             pre_u = ut.laplace_invert(
-                lambda s, mp_mode: ut.laplace_p(s, z0, z, param, b_rate,
-                                                d_rate, eps, mp_mode) *
-                          ut.laplace_p(s, z + 1, zt, param, b_rate, d_rate,
-                                       eps, mp_mode),
+                lambda s: laplace_p(s, z0, z, param, b_rate, d_rate, eps) *
+                          laplace_p(s, z + 1, zt, param, b_rate, d_rate, eps),
                 t,
                 laplace_method=laplace_method,
                 k=num_terms,
@@ -36,10 +35,8 @@ def aug_bld_ilt(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
             d = 0.0
         else:
             pre_d = ut.laplace_invert(
-                lambda s, mp_mode: ut.laplace_p(s, z0, z, param, b_rate,
-                                                d_rate, eps, mp_mode) *
-                          ut.laplace_p(s, z - 1, zt, param, b_rate, d_rate,
-                                       eps, mp_mode),
+                lambda s: laplace_p(s, z0, z, param, b_rate, d_rate, eps) *
+                          laplace_p(s, z - 1, zt, param, b_rate, d_rate, eps),
                 t,
                 laplace_method=laplace_method,
                 k=num_terms,
@@ -50,16 +47,14 @@ def aug_bld_ilt(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
             h = 0.0
         else:
             pre_h = ut.laplace_invert(
-                lambda s, mp_mode: ut.laplace_p(s, z0, z, param, b_rate,
-                                                d_rate, eps, mp_mode) *
-                          ut.laplace_p(s, z, zt, param, b_rate, d_rate,
-                                       eps, mp_mode),
+                lambda s: laplace_p(s, z0, z, param, b_rate, d_rate, eps) *
+                          laplace_p(s, z, zt, param, b_rate, d_rate, eps),
                 t,
                 laplace_method=laplace_method,
                 k=num_terms,
-                f_bounds=[0, t+0.05])
+                f_bounds=[0, t + 0.05])
             h = float(mp.fdiv(pre_h, pr))
-            
+
         return np.array([u, d, h])
 
     aug_data = ut_em.help_bld_aug(udh, sorted_data, j_tol, h_tol, z_trunc)

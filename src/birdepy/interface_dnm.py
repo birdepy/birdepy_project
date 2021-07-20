@@ -95,55 +95,27 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     that p[0] > p[1] (i.e., rate of spread greater than recovery rate).
 
     >>> import birdepy as bd
-    ... t_data = [t for t in range(100)]
-    ... p_data = bd.simulate.discrete([0.75, 0.25, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True, seed=2021)
-    ...     for likelihood in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
-    ...         est = bd.estimate(t_data, p_data, [0.51, 0.5], [[1e-6, 1], [1e-6, 1]],
-    ...                           framework='dnm', likelihood=likelihood, model='Verhulst 2 (SIS)',
-    ...                           known_p=[50], idx_known_p=[2],
-    ...                           con={'type': 'ineq', 'fun': lambda p: p[0]-p[1]})
-    ...         print('dnm estimate using', likelihood, 'is', est.p, ', with standard errors', est.se,
-    ...               'computed in ', est.compute_time, 'seconds.')
-    dnm estimate using da is [0.7884566542732246, 0.2628678940919104] , with standard errors [0.13912062 0.04737368] computed in  6.304335355758667 seconds.
-    dnm estimate using Erlang is [0.7983016993133849, 0.2628201261897523] , with standard errors [0.14214373 0.04809272] computed in  0.3658630847930908 seconds.
-    dnm estimate using expm is [0.7962965268028664, 0.262163461352853] , with standard errors [0.14114384 0.04776676] computed in  0.4570772647857666 seconds.
-    dnm estimate using gwa is [0.5375673483197848, 0.17656810406126427] , with standard errors [0.06734435 0.02312377] computed in  20.887160778045654 seconds.
-    dnm estimate using gwasa is [0.54391956118784, 0.17875443423303075] , with standard errors [0.06836115 0.02347495] computed in  0.712468147277832 seconds.
-    dnm estimate using ilt is [0.8004878587607526, 0.26356570622759573] , with standard errors [0.00023999 0.00023996] computed in  1226.9041030406952 seconds.
-    dnm estimate using oua is [0.653866482752309, 0.2267362102279563] , with standard errors [0.09957281 0.03645399] computed in  3.288478136062622 seconds.
-    dnm estimate using uniform is [0.7962959505977425, 0.262163262841564] , with standard errors [0.14114499 0.04776725] computed in  1.3137309551239014 seconds.
+    >>> t_data = [t for t in range(100)]
+    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+    ...                               survival=True, seed=2021)
+    >>> for likelihood in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
+    ...     likelihood = 'gwasa'
+    >>>     est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
+    ...                       framework='dnm', model='Ricker', idx_known_p=[3], known_p=[1],
+    ...                       likelihood=likelihood)
+    >>>     print('dnm estimate using', likelihood, 'is', est.p, ', with standard errors',
+    ...           est.se, 'computed in ', est.compute_time, 'seconds.')
+    dnm estimate using da is [0.742967758293063, 0.21582082476775125, 0.022598554340938885] , with standard errors [0.16633436 0.03430501 0.00436483] computed in  12.29400086402893 seconds.
+    dnm estimate using Erlang is [0.7478158070214841, 0.2150341741826537, 0.022748822721356705] , with standard errors [0.16991822 0.0345762  0.00435054] computed in  0.9690003395080566 seconds.
+    dnm estimate using expm is [0.7477255598292176, 0.2150476994316206, 0.022745305129350565] , with standard errors [0.16904095 0.03443197 0.00433563] computed in  1.6919987201690674 seconds.
+    dnm estimate using gwa is [0.6600230500097711, 0.16728663936008945, 0.02512248420514078] , with standard errors [0.14248815 0.02447161 0.00488879] computed in  37.52255415916443 seconds.
+    dnm estimate using gwasa is [0.6604981297820195, 0.16924607541398484, 0.02492054535741541] , with standard errors [0.14244908 0.02485465 0.00488222] computed in  0.8699958324432373 seconds.
+    dnm estimate using ilt is [0.7466254648849691, 0.21415145383850764, 0.022794996238547492] , with standard errors [0.10187377 0.03137803        nan] computed in  1185.0924031734467 seconds.
+    dnm estimate using oua is [0.5000083585920406, 0.5, 0.05] , with standard errors [       nan        nan 0.01961143] computed in  3.466001272201538 seconds.
+    dnm estimate using uniform is [0.7477293759434092, 0.215047068344254, 0.022745437226772615] , with standard errors [0.16900378 0.03443071 0.00433504] computed in  3.275972366333008 seconds.
 
-    Using different parameters, we see different algorithms perform better/
-    worse:
-
-    >>> p_data = bd.simulate.discrete([0.075, 0.025, 50], model='Verhulst 2 (SIS)', z0=10,
-    ...                               times=t_data, k=1, survival=True,
-    ...                               seed=2021)
-    ... for likelihood in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua',
-    ...                    'uniform']:
-    ...     est = bd.estimate(t_data, p_data, [0.51, 0.5], [[1e-6, 1], [1e-6, 1]],
-    ...                       framework='dnm', likelihood=likelihood, model='Verhulst 2 (SIS)',
-    ...                       known_p=[50], idx_known_p=[2],
-    ...                       con={'type': 'ineq', 'fun': lambda p: p[0]-p[1]})
-    ...     print('dnm estimate using', likelihood, 'is',
-    ...           est.p, ', with standard errors', est.se,
-    ...           'computed in ', est.compute_time, 'seconds.')
-    dnm estimate using da is [0.06505654898375403, 0.022302239704218848] , with standard errors [0.00930282 0.00446215] computed in  6.565070152282715 seconds.
-    /home/bp/anaconda3/envs/testing/lib/python3.8/site-packages/scipy/optimize/optimize.py:282: RuntimeWarning: Values in x were outside bounds during a minimize step, clipping to bounds
-      warnings.warn("Values in x were outside bounds during a "
-    dnm estimate using Erlang is [0.06458375273876914, 0.02193397249882732] , with standard errors [0.01048676 0.00450661] computed in  0.89235520362854 seconds.
-    dnm estimate using expm is [0.06449716075484259, 0.021894088479430286] , with standard errors [0.01045434 0.00449354] computed in  0.8028414249420166 seconds.
-    dnm estimate using gwa is [0.06295369690363607, 0.02129198225320385] , with standard errors [0.01007199 0.00432168] computed in  25.937010288238525 seconds.
-    /home/bp/Dropbox/Brendan/Active Projects/BranchingProcessEstimation/NumericsSimulations/birdepy_project/birdepy/probability_gwasa.py:277: RuntimeWarning: Probability not in [0, 1] computed, some output has been replaced by a default value.  Results may be unreliable.
-      warnings.warn("Probability not in [0, 1] computed, "
-    dnm estimate using gwasa is [0.060933808369354664, 0.020348140612595354] , with standard errors [0.01042864 0.00450257] computed in  1.134232759475708 seconds.
-    dnm estimate using ilt is [0.06450625629765833, 0.021898206532375137] , with standard errors [0.01045783 0.00449486] computed in  833.8152034282684 seconds.
-    dnm estimate using oua is [0.05129604751115264, 0.02146969246135162] , with standard errors [0.00699228 0.00415237] computed in  1.780461311340332 seconds.
-    dnm estimate using uniform is [0.06449715998400529, 0.021894085243895373] , with standard errors [0.01045434 0.00449354] computed in  2.339176654815674 seconds.
-
-    This time warnings are given for methods 'da' and 'gwa', most likely due to numerical
-    overflow, however accurate estimates are still provided.
+    How well methods perform varies from case to case. In this instance most methods perform well,
+    while some throw errors but return useful output regardless, and some fail altogether.
 
     Notes
     -----
@@ -211,18 +183,21 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     --------
     Simulate a continuous sample path and estimate the parameters.
 
-    Simulate:
+    Import BirDePy:
 
     >>> import birdepy as bd
-    ... t_data, p_data = bd.simulate.continuous([0.75, 0.25, 50],'Verhulst 2 (SIS)',
-    ...                                          10, 100, seed=2021)
+
+    Simulate some synthetic data:
+
+    >>> t_data, p_data = bd.simulate.continuous([0.75, 0.25, 0.02, 1], 'Ricker', 10,
+    ...                                         100, survival=True, seed=2021)
 
     Estimate:
 
-    >>> bd.estimate(t_data, p_data, [0.5, 0.5, 100], [[1e-6, 10], [1e-6, 10], [1,200]],
-    ...             model ='Verhulst 2 (SIS)', scheme='continuous')
-    ... print(est.p)
-    [0.8468206412942119, 0.24924760035405574, 47.52248709677161]
+    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+    ...                   model='Ricker', idx_known_p=[3], known_p=[1], scheme='continuous')
+    >>> print(est.p)
+    [0.7603171062895576, 0.2514810854871476, 0.020294342655751033]
 
     Notes
     -----
@@ -233,11 +208,10 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     see [2].
 
     See also
-    :func:`birdepy.estimate()`
-    :func:`birdepy.simulate.discrete()`
-    :func:`birdepy.simulate.continuous()`
-    :func:`birdepy.probability()`
-    :func:`birdepy.forecast()`
+    :func:`birdepy.estimate()` :func:`birdepy.probability()` :func:`birdepy.forecast()`
+
+    :func:`birdepy.simulate.discrete()` :func:`birdepy.simulate.continuous()`
+
     --------
 
 
