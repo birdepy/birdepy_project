@@ -8,7 +8,7 @@ from numba.cuda.random import xoroshiro128p_uniform_float64 as rand
 from collections import Counter
 
 
-def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
+def discrete(param, model, z0, t, k=1, survival=False, seed=1):
     """Simulation of continuous-time birth-and-death processes at time 't'
     using CUDA.
 
@@ -41,7 +41,7 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
          for custom models.
 
     z0: int or callable
-        The initial population for each sample path.
+        The initial population size for each sample path.
 
     t : scalar
         The time at which the simulated birth-and-death is observed.
@@ -51,7 +51,7 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
 
     survival : bool, optional
         If set to True, then the simulated sample paths are conditioned to
-        have a positive population size at the final observation time.  This
+        have a positive population size at the final observation time.  Since This
         can greatly increase computation time.
 
     seed : int, optional
@@ -70,7 +70,7 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
     observed at time 1.0:
 
     >>> from birdepy import gpu_functions as bdg
-    >>> bdg.discrete_gpu([0.2, 0.4], 'M/M/inf', 10, 1.0, k=10**8)
+    >>> bdg.discrete([0.2, 0.4], 'M/M/inf', 10, 1.0, k=10**8)
     array([8, 6, 3, ..., 8, 7, 9], dtype=int64)
 
     Notes
@@ -153,7 +153,7 @@ def discrete_gpu(param, model, z0, t, k=1, survival=False, seed=1):
         raise TypeError("Argument 'model' has an unknown value.")
 
 
-def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
+def probability(z0, zt, t, param, model, k=10**6, seed=1):
     """Transition probabilities for continuous-time birth-and-death processes
     generated using Monte Carlo on a GPU.
 
@@ -208,9 +208,12 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
     transition_probability : ndarray
         An array of transition probabilities. If t has size bigger than 1,
         then the first coordinate corresponds to `t`, the second coordinate
-        corresponds to `z0` and the third coordinate corresponds to `zt`.
-        Otherwise the first coordinate corresponds to `z0` and the second
-        coordinate corresponds to `zt`
+        corresponds to `z0` and the third coordinate corresponds to `zt`;
+        for example if `z0=[1,3,5,10]`, `zt=[5,8]` and `t=[1,2,3]`, then
+        `transition_probability[2,0,1]` corresponds to
+        P(Z(3)=8 | Z(0)=1).
+        If `t` has size 1 the first coordinate corresponds to `z0` and the second
+        coordinate corresponds to `zt`.
 
     Examples
     --------
@@ -219,7 +222,7 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
     ... t = 0.2
     ... z0 = [50, 60]
     ... zt = [55, 56, 57, 58, 59,60]
-    ... bdg.probability_gpu(z0, zt, t, param, 'Moran', 10**6)
+    ... bdg.probability(z0, zt, t, param, 'Moran', 10**6)
     array([[3.09160e-02, 5.43120e-02, 8.09760e-02, 1.05968e-01, 1.23203e-01,1.27453e-01],
        [0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 6.30000e-05]])
 
@@ -268,7 +271,7 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
     if t.size == 1:
         output = np.zeros((z0.size, zt.size))
         for idx1, _z0 in enumerate(z0):
-            sim = discrete_gpu(param, model, _z0, t[0], k, False, seed)
+            sim = discrete(param, model, _z0, t[0], k, False, seed)
             counts = Counter(sim)
             for idx2, _zt in enumerate(zt):
                 output[idx1, idx2] = counts[_zt]/k
@@ -276,7 +279,7 @@ def probability_gpu(z0, zt, t, param, model, k=10**6, seed=1):
         output = np.zeros((t.size, z0.size, zt.size))
         for idx3, _t in enumerate(t):
             for idx1, _z0 in enumerate(z0):
-                sim = discrete_gpu(param, model, _z0, _t, k, False, seed)
+                sim = discrete(param, model, _z0, _t, k, False, seed)
                 counts = Counter(sim)
                 for idx2, _zt in enumerate(zt):
                     output[idx3, idx1, idx2] = counts[_zt] / k
@@ -288,10 +291,10 @@ def discrete_verhulst(out, rng_states, p, z0, time, survival):
     thread_id = cuda.grid(1)
 
     def b_rate(z):
-        return p[0] * (1 - p[2]*z/p[4]) * z
+        return p[0] * (1 - p[2]*z) * z
 
     def d_rate(z):
-        return p[1] * (1 + p[3]*z/p[4]) * z
+        return p[1] * (1 + p[3]*z) * z
 
     while True:
         pop = z0
@@ -390,7 +393,7 @@ def discrete_hassell(out, rng_states, p, z0, time, survival):
     thread_id = cuda.grid(1)
 
     def b_rate(z):
-        return p[0] * z / (1 + z / p[2]) ** p[3]
+        return p[0] * z / (1 + z * p[2]) ** p[3]
 
     def d_rate(z):
         return p[1] * z
@@ -424,7 +427,7 @@ def discrete_mss(out, rng_states, p, z0, time, survival):
     thread_id = cuda.grid(1)
 
     def b_rate(z):
-        return p[0] * z / (1 + (z / p[2]) ** p[3])
+        return p[0] * z / (1 + (z * p[2]) ** p[3])
 
     def d_rate(z):
         return p[1] * z

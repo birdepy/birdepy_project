@@ -80,7 +80,6 @@ def probability_da(z0, zt, t, param, b_rate, d_rate, h_fun, k):
                 break
 
         fluid_path = np.array(fluid_path.y[0])
-
         m_function = np.exp(ut.trap_int(h_fun(fluid_path, param),
                                         t_linspace))
 

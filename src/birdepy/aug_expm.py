@@ -19,7 +19,7 @@ def aug_bld_expm(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
 
     q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
 
-    num_states = z_max - z_min + 1
+    num_states = int(z_max - z_min + 1)
 
     zero_mat = np.zeros((num_states, num_states))
     c_mat = np.vstack((np.hstack((q_mat, zero_mat)),

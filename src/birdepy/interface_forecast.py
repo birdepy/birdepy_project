@@ -69,11 +69,12 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
 
 
 def forecast(model, z0, times, param, cov=None, interval='confidence', method=None,
-             percentiles=[0, 0.01, 0.2, 2.3, 15.9, 50, 84.1, 97.7, 99.8, 99.9, 100],
+             percentiles=(0, 2.5, 10, 25, 50, 75, 90, 97.5, 100),
+             labels=('$95\%$', '$80\%$', '$50\%$'),
              p_bounds=None, con=(), known_p=(), idx_known_p=(),
              k=10 ** 3, n=10 ** 3, seed=None, colormap=cm.Purples,
-             xlabel='Time', ylabel='default', xticks='default',
-             rotation=45, display=False, **options):
+             xlabel='t', ylabel='default', xticks='default',
+             rotation=45, display=False, export=False, **options):
     """Simulation based forecasting for continuous-time birth-and-death processes.
     Produces a plot of the likely range of mean population sizes subject to parameter uncertainty
     (confidence intervals) or the likely range of population sizes subject to parameter
@@ -145,9 +146,10 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
             - 'gwa' (default for prediction intervals)
 
     percentiles : list, optional
-        List of percentiles to split data into for displaying. The default values
-        split the data at 1, 2, and 3 standard deviations from the mean in both
-        directions.
+        List of percentiles to split the data into.
+
+    labels : list, optional
+        List of strings containing labels for each percentile split.
 
     p_bounds : list
         Bounds on parameters. Should be specified as a sequence of
@@ -206,6 +208,9 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     display : bool, optional
         If True, then progress updates are provided.
 
+    export : str, optional
+        File name for export of the figure to a tex file.
+
     Examples
     --------
     First simulate some sample paths using :func:`birdepy.simulate.discrete()`:
@@ -245,7 +250,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
 
     :func:`birdepy.simulate.discrete()` :func:`birdepy.simulate.continuous()`
 
-    :func:`birdepy.gpu_functions.probability_gpu()`  :func:`birdepy.gpu_functions.discrete_gpu()`
+    :func:`birdepy.gpu_functions.probability()`  :func:`birdepy.gpu_functions.discrete()`
 
     References
     ----------
@@ -258,6 +263,9 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     """
     times = np.array(times)
 
+    if type(xticks) == str:
+        xticks = times
+
     if type(xticks) is list:
         xticks = times
     else:
@@ -265,9 +273,9 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
 
     if ylabel == 'default':
         if interval == 'confidence':
-            ylabel = 'Forecast Mean Population'
+            ylabel = '$\mathbb{E} Z(t)$'
         else:
-            ylabel = 'Forecast Population'
+            ylabel = '$Z(t)'
 
     if interval == 'confidence' and method is None:
         method = 'fm'
@@ -352,19 +360,21 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     for i in range(m):
         for t in range(times.shape[0]):
             SDist[t, i] = np.percentile(samples[:, t], percentiles[i])
-
-    half = int((m - 1) / 2)
-
+    half = int(np.floor((m - 1) / 2))
     fig.canvas.draw()
     ax1.plot(times, SDist[:, half], color='k')
-    for i in range(half):
-        ax1.fill_between(times, SDist[:, i], SDist[:, -(i + 1)], color=colormap(i / half))
+    for i in range(half-1):
+        ax1.fill_between(times, SDist[:, i+1], SDist[:, -(i + 2)], color=colormap((i+1) / half),
+                         label=labels[i])
     ax1.tick_params(labelsize=11.5)
     ax1.set_xlabel(xlabel, fontsize=14)
     ax1.set_xticks(xticks)
+    ax1.legend(loc="upper left")
     labels = [f'{t}' for t in xticks]
     ax1.set_xticklabels(labels, rotation=rotation)
     ax1.set_ylabel(ylabel, fontsize=14)
     fig.tight_layout()
-
+    if isinstance(export, str):
+        import tikzplotlib
+        tikzplotlib.save(export + ".tex")
     return 0

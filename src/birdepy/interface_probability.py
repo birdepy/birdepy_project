@@ -78,9 +78,12 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
     transition_probability : ndarray
         An array of transition probabilities. If t has size bigger than 1,
         then the first coordinate corresponds to `t`, the second coordinate
-        corresponds to `z0` and the third coordinate corresponds to `zt`.
-        Otherwise the first coordinate corresponds to `z0` and the second
-        coordinate corresponds to `zt`
+        corresponds to `z0` and the third coordinate corresponds to `zt`;
+        for example if `z0=[1,3,5,10]`, `zt=[5,8]` and `t=[1,2,3]`, then
+        `transition_probability[2,0,1]` corresponds to
+        P(Z(3)=8 | Z(0)=1).
+        If `t` has size 1 the first coordinate corresponds to `z0` and the second
+        coordinate corresponds to `zt`.
 
     Examples
     --------
@@ -90,8 +93,8 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
     da approximation: 0.016040426614336103
     Erlang approximation: 0.0161337966847677
     expm approximation: 0.016191045449304713
-    gwa approximation: 0.020086462242852647
-    gwasa approximation: 0.020054484220865178
+    gwa approximation: 0.014646030484734228
+    gwasa approximation: 0.014622270048744283
     ilt approximation: 0.01618465415009876
     oua approximation: 0.021627234315268227
     uniform approximation: 0.016191045442910168
@@ -111,7 +114,7 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
 
     :func:`birdepy.simulate.discrete()` :func:`birdepy.simulate.continuous()`
 
-    :func:`birdepy.gpu_functions.probability_gpu()`  :func:`birdepy.gpu_functions.discrete_gpu()`
+    :func:`birdepy.gpu_functions.probability()`  :func:`birdepy.gpu_functions.discrete()`
 
     References
     ----------
@@ -183,12 +186,19 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
                                                  z_trunc)
 
     elif method == 'gwa':
-        return probability_gwa.probability_gwa(z0, zt, t, param, b_rate,
-                                               d_rate)
+        if 'anchor' in options.keys():
+            anchor = options['anchor']
+        else:
+            anchor = 'midpoint'
+        return probability_gwa.probability_gwa(z0, zt, t, param, b_rate, d_rate, anchor)
 
     elif method == 'gwasa':
+        if 'anchor' in options.keys():
+            anchor = options['anchor']
+        else:
+            anchor = 'midpoint'
         return probability_gwasa.probability_gwasa(z0, zt, t, param, b_rate,
-                                                   d_rate)
+                                                   d_rate, anchor)
 
     elif method == 'ilt':
         if 'laplace_method' in options.keys():

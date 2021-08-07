@@ -3,23 +3,31 @@ import birdepy.utility_probability as ut
 import warnings
 
 
-def probability_gwa(z0, zt, t, param, b_rate, d_rate):
+def probability_gwa(z0, zt, t, param, b_rate, d_rate, anchor):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *Galton-Watson approximation* method.
 
     To use this function call :func:`birdepy.probability` with `method` set to
     'gwa'::
 
-        birdepy.probability(z0, zt, t, param, method='gwa')
+        birdepy.probability(z0, zt, t, param, method='gwa', anchor='midpoint')
 
-    This function does not have any arguments which are not already described
-    by the documentation of :func:`birdepy.probability`
+    The parameters associated with this method (listed below) can be
+    accessed using kwargs in :func:`birdepy.probability()`. See documentation
+    of :func:`birdepy.probability` for the main arguments.
+
+    Parameters
+    ----------
+    anchor : string, optional
+        Determines which state z is used to determine the linear approximation.
+        Should be one of: 'initial' (z0 is used), 'midpoint' (default, 0.5*(z0+zt) is used)
+        or 'terminal' (zt is used).
 
     Examples
     --------
     >>> import birdepy as bd
     >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='gwa')[0][0]
-    0.005653434379437836
+    0.00227651766770292
 
     Notes
     -----
@@ -49,8 +57,17 @@ def probability_gwa(z0, zt, t, param, b_rate, d_rate):
         output = np.zeros((z0.size, zt.size))
         for idx1, _z0 in enumerate(z0):
             for idx2, _zt in enumerate(zt):
-                pr = ut.p_lin(_z0, _zt, b_rate(_z0, param) / _z0,
-                              d_rate(_z0, param) / _z0, t[0])
+                if anchor == 'midpoint':
+                    midpoint = 0.5 * (_z0 + _zt)
+                    lam = b_rate(midpoint, param) / midpoint
+                    mu = d_rate(midpoint, param) / midpoint
+                elif anchor == 'initial':
+                    lam = b_rate(_z0, param) / _z0
+                    mu = d_rate(_z0, param) / _z0
+                elif anchor == 'terminal':
+                    lam = b_rate(_zt, param) / _zt
+                    mu = d_rate(_zt, param) / _zt
+                pr = ut.p_lin(_z0, _zt, lam, mu, t[0])
                 if not 0 <= pr <= 1.0:
                     warnings.warn("Probability not in [0, 1] computed, "
                                   "some output has been replaced by a "
@@ -67,8 +84,17 @@ def probability_gwa(z0, zt, t, param, b_rate, d_rate):
         for idx1, _z0 in enumerate(z0):
             for idx2, _zt in enumerate(zt):
                 for idx3, _t in enumerate(t):
-                    pr = ut.p_lin(_z0, _zt, b_rate(_z0, param) / _z0,
-                                  d_rate(_z0, param) / _z0, _t)
+                    if anchor == 'midpoint':
+                        midpoint = 0.5 * (_z0 + _zt)
+                        lam = b_rate(midpoint, param) / midpoint
+                        mu = d_rate(midpoint, param) / midpoint
+                    elif anchor == 'initial':
+                        lam = b_rate(_z0, param) / _z0
+                        mu = d_rate(_z0, param) / _z0
+                    elif anchor == 'terminal':
+                        lam = b_rate(_zt, param) / _zt
+                        mu = d_rate(_zt, param) / _zt
+                    pr = ut.p_lin(_z0, _zt, lam, mu, t[0])
                     if not 0 <= pr <= 1.0:
                         warnings.warn("Probability not in [0, 1] computed, "
                                       "some output has been replaced by a "

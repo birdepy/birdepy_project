@@ -14,7 +14,8 @@ from birdepy import simulate
 
 def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
              scheme='discrete', con=(), known_p=(), idx_known_p=(),
-             se_type='asymptotic', ci_plot=False, display=False, **options):
+             se_type='asymptotic', seed=None, ci_plot=False, export=False, display=False,
+             **options):
     """Parameter estimation for (continuously or discretely observed)
     continuous-time birth-and-death processes.
 
@@ -105,11 +106,14 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         Should be one of: 'none' (default), 'simulated', or 'asymptotic'.
         See :ref:`here <Confidence Regions>` for more information.
 
-    ci_plot : bool, optional
-        Enables confidence region plotting for 1d or 2d parameter estimates.
-
     display : bool, optional
         If True, then progress updates are provided for some methods.
+
+    ci_plot : bool, optional
+        Enables confidence region plotting for 2d parameter estimates.
+
+    export : str, optional
+        File name for export of confidence region figure to a LaTeX file.
 
     Returns
     -------
@@ -117,9 +121,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         The estimation output represented as an :func:`EstimationOutput`
         object. Important attributes are: `p` the parameter estimate, `se` the
         standard error estimate, `cov` the estimated covariance of the
-        assumed distribution of the parameter estimate, `err` error (log-likelihood
-        for 'framework' `dnm', squared error for 'framework' `lse'),
-        `capacity` the estimated carrying capacity.
+        assumed distribution of the parameter estimate, `val` is the log-likelihood
+        for 'framework' `dnm' and 'em', squared error for 'framework' `lse',
+        `capacity` is the estimated carrying capacity.
 
     Examples
     --------
@@ -187,7 +191,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     :func:`birdepy.simulate.discrete()` :func:`birdepy.simulate.continuous()`
 
-    :func:`birdepy.gpu_functions.probability_gpu()`  :func:`birdepy.gpu_functions.discrete_gpu()`
+    :func:`birdepy.gpu_functions.probability()`  :func:`birdepy.gpu_functions.discrete()`
 
     References
     ----------
@@ -208,6 +212,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     idx_known_p = np.array(idx_known_p)
 
     options = ut.add_options(options)
+
+    if 'seed' is None:
+        rng = np.random.default_rng()
+    else:
+        rng = np.random.default_rng(seed)
 
     data = ut.data_sort(t_data, p_data)
 
@@ -284,7 +293,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             if 'its' in options.keys():
                 its = options['its']
             else:
-                its = 1
+                its = 2
                 options['its'] = its
             if 'method' in options.keys():
                 method = options['method']
@@ -296,16 +305,16 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             else:
                 tau = min(min(sorted_data.keys()) / 10, 0.1)
                 options['tau'] = tau
-            if 'seed' in options.keys():
-                seed = options['seed']
-            else:
-                seed = None
-                options['seed'] = seed
             if 'distance' in options.keys():
                 distance = options['distance']
             else:
                 distance = None
                 options['distance'] = distance
+            if 'stat' in options.keys():
+                stat = options['stat']
+            else:
+                stat = 'median'
+                options['stat'] = distance
             if 'c' in options.keys():
                 c = options['c']
             else:
@@ -313,9 +322,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 options['c'] = c
 
             pre_p_est, cov, samples = \
-                discrete_est_abc(sorted_data, eps0, distance,
+                discrete_est_abc(sorted_data, eps0, distance, stat,
                                  k, its, c, method, b_rate, d_rate, idx_known_p,
-                                 known_p, p_bounds, con, tau, seed, display)
+                                 known_p, p_bounds, con, tau, rng, display)
 
             if its > 1:
                 p_est = pre_p_est[-1]
@@ -447,6 +456,15 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         raise ValueError("Argument `scheme` has an unknown value. Should "
                          "be one of: 'discrete' or 'continuous'.")
 
+    if 'xlabel' in options.keys():
+        xlabel = options['xlabel']
+    else:
+        xlabel = "$\\theta_1$"
+    if 'ylabel' in options.keys():
+        ylabel = options['ylabel']
+    else:
+        ylabel = "$\\theta_2$"
+
     # Compute confidence regions and standard errors
     if se_type == 'asymptotic':
         if framework == 'lse':
@@ -461,17 +479,18 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 se = 'Error computing standard errors. Covariance matrix may have' \
                      'negative diagonal entries.'
             if ci_plot:
-                ut.confidence_region(mean=p_est, cov=cov, se_type=se_type)
+                ut.confidence_region(mean=p_est, cov=cov, obs=None, se_type=se_type, xlabel=xlabel,
+                                     ylabel=ylabel, export=export)
     elif se_type == 'simulated':
-        if 'num_bs_samples' in options.keys():
-            num_bs_samples = options['num_bs_samples']
+        if 'num_samples' in options.keys():
+            num_samples = options['num_samples']
         else:
-            num_bs_samples = 100
+            num_samples = 100
 
         param = ut.p_bld(p_est, idx_known_p, known_p)
 
-        bootstrap_samples = np.zeros((num_bs_samples, p0.size))
-        for idx in range(num_bs_samples):
+        bootstrap_samples = np.zeros((num_samples, p0.size))
+        for idx in range(num_samples):
             if scheme == 'continuous':
                 if type(t_data[0]) == list:
                     t_data_temp = []
@@ -481,7 +500,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                                                           model,
                                                           p_data[idx][0],
                                                           model,
-                                                          t_data[idx][-1])
+                                                          t_data[idx][-1],
+                                                          seed=rng)
                         t_data_temp.append(times)
                         p_data_temp.append(pops)
                 else:
@@ -495,7 +515,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 for i in data:
                     for _ in range(data[i]):
                         new_zt = simulate.discrete(param, model,
-                                                   i[0], [0, i[2]], k=1)[1]
+                                                   i[0], [0, i[2]], k=1,
+                                                   seed=rng)[1]
                         new_point = (i[0], new_zt, i[2])
                         if new_point in temp_data:
                             temp_data[new_point] += 1
@@ -504,21 +525,21 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 if framework == 'dnm':
                     bootstrap_samples[idx, :] = discrete_est_dnm(
                         temp_data, likelihood, model, z_trunc, idx_known_p,
-                        known_p, p0, p_bounds, con, opt_method, options)[0].x
+                        known_p, p_est, p_bounds, con, opt_method, options)[0].x
                 elif framework == 'lse':
                     bootstrap_samples[idx, :] = discrete_est_lse(
                         temp_data, squares, model, b_rate, d_rate, z_trunc,
-                        idx_known_p, known_p, p0, p_bounds, con, opt_method,
+                        idx_known_p, known_p, p_est, p_bounds, con, opt_method,
                         options).x
                 else:  # framework is 'em'
                     bootstrap_samples[idx, :] = discrete_est_em(
-                        data, p0, technique, accelerator, likelihood, p_bounds,
+                        data, p_est, technique, accelerator, likelihood, p_bounds,
                         con, known_p, idx_known_p, model, b_rate, d_rate,
                         z_trunc, max_it, i_tol, j_tol, h_tol, display,
                         opt_method, options)[0]
             if display:
                 print('Boostrap confidence region progress:',
-                      100 * (idx + 1) / num_bs_samples, '%')
+                      100 * (idx + 1) / num_samples, '%')
             cov = np.cov(bootstrap_samples, rowvar=False)
         try:
             se = np.sqrt(np.diag(cov))
@@ -528,7 +549,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         if ci_plot:
             try:
                 ut.confidence_region(mean=p_est, cov=cov, se_type=se_type,
-                                     obs=bootstrap_samples)
+                                     obs=bootstrap_samples, xlabel=xlabel,
+                                     ylabel=ylabel, export=export)
             except:
                 warnings.warn("Error plotting confidence regions. Estimated "
                               "covariance matrix may have negative diagonal "
@@ -547,8 +569,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     else:
         capacity = "Functionality not available for custom models."
 
-    return EstimationOutput(p=list(p_est), capacity=capacity, err=err, cov=cov,
-                            se=se, compute_time=time.time() - tic,
+    return EstimationOutput(p=list(p_est), capacity=capacity, val=err, cov=cov,
+                            se=list(se), compute_time=time.time() - tic,
                             framework=framework, message=message,
                             success=success, iterations=iterations,
                             method=method, p0=list(p0),

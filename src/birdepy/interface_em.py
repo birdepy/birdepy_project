@@ -119,30 +119,12 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     The constraint ``con={'type': 'ineq', 'fun': lambda p: p[0]-p[1]}`` ensures
     that p[0] > p[1] (i.e., rate of spread greater than recovery rate).
 
-    >>> for technique in ['expm', 'ilt', 'num']:
-    ...     for accelerator in ['cg', 'none', 'Lange', 'qn1', 'qn2']:
-    ...         est = bd.estimate(t_data, p_data, p0=[0.75, 0.25], p_bounds=[[1e-6, 1], [1e-6, 1]],
-    ...                           framework='em', technique=technique, accelerator=accelerator,
-    ...                           model='Verhulst 2 (SIS)', known_p=[50], idx_known_p=[2],
-    ...                           con={'type':'ineq','fun': lambda p:p[0]-p[1]})
-    ...         print('EM estimate using', technique, 'for the E step and accelerated using',
-    ...               accelerator, 'is', est.p, ', with standard errors,', est.se, 'computed in ',
-    ...               est.compute_time, 'seconds.')
-    EM estimate using expm for the E step and accelerated using cg is [0.796257839100216, 0.2621501062165729] , with standard errors, [0.14112748 0.04776121] computed in  2.9829728603363037 seconds.
-    EM estimate using expm for the E step and accelerated using none is [0.8466397427211018, 0.2792053188489586] , with standard errors, [0.16107783 0.05450446] computed in  12.734002828598022 seconds.
-    EM estimate using expm for the E step and accelerated using Lange is [0.8378718939606143, 0.2765564095359097] , with standard errors, [0.15752948 0.05336882] computed in  2.768000364303589 seconds.
-    EM estimate using expm for the E step and accelerated using qn1 is [0.7958851679071696, 0.2620287325246597] , with standard errors, [0.14098809 0.04771504] computed in  8.574997425079346 seconds.
-    EM estimate using expm for the E step and accelerated using qn2 is [0.8095737016322121, 0.266331221909833] , with standard errors, [0.14610143 0.04937993] computed in  6.400023460388184 seconds.
-    EM estimate using ilt for the E step and accelerated using cg is [0.8564316236063144, 0.28275835207326305] , with standard errors, [0.16248722 0.05507611] computed in  2675.9899156093597 seconds.
-    EM estimate using ilt for the E step and accelerated using none is [0.84650473916156, 0.279158456338403] , with standard errors, [0.15986896 0.05411458] computed in  11955.43051147461 seconds.
-    EM estimate using ilt for the E step and accelerated using Lange is [0.8704531816935857, 0.28709869052795656] , with standard errors, [0.16784804 0.05681519] computed in  1725.5185992717743 seconds.
-    EM estimate using ilt for the E step and accelerated using qn1 is [0.7955017222784072, 0.26189931540268846] , with standard errors, [0.1393653  0.04719352] computed in  9261.022188663483 seconds.
-    EM estimate using ilt for the E step and accelerated using qn2 is [0.8200686674346739, 0.2697731023643679] , with standard errors, [0.14836714 0.05014946] computed in  5234.632050991058 seconds.
-    EM estimate using num for the E step and accelerated using cg is [0.7890713731540463, 0.2597182113856767] , with standard errors, [0.13846018 0.04685984] computed in  7.371973276138306 seconds.
-    EM estimate using num for the E step and accelerated using none is [0.4973491997090579, 0.49863504107284695] , with standard errors, [nan nan] computed in  7.112999200820923 seconds.
-    EM estimate using num for the E step and accelerated using Lange is [0.8248671831473541, 0.2731156038269426] , with standard errors, [0.15254979 0.05187294] computed in  6.22900128364563 seconds.
-    EM estimate using num for the E step and accelerated using qn1 is [0.4996646826148946, 0.49983021134630845] , with standard errors, [nan nan] computed in  3.6879994869232178 seconds.
-    EM estimate using num for the E step and accelerated using qn2 is [0.7961797154938052, 0.26212712511845376] , with standard errors, [0.14109955 0.04775251] computed in  10.855000495910645 seconds.
+    for technique in ['expm', 'ilt', 'num']:
+        for accelerator in ['cg', 'none', 'Lange', 'qn1', 'qn2']:
+            tic = time.time()
+            est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
+                              framework='em', technique=technique, accelerator=accelerator,
+                              model='Ricker', idx_known_p=[3], known_p=[1])
 
     A ``RuntimeWarning`` associated with SciPy's :func:`minimize` function  may
     appear, this can be ignored.
@@ -237,7 +219,8 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
             cov = 'Covariance matrix could not be determined.'
     else:
         try:
-            cov = -1/ut.Hessian(ll, p_est, p_bounds)
+            print(np.array([-1/ut.Hessian(ll, p_est, p_bounds)]))
+            cov = np.array([-1/ut.Hessian(ll, p_est, p_bounds)])
         except:
             cov = 'Covariance matrix could not be determined.'
 

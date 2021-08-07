@@ -16,7 +16,7 @@ def w_fun(lam, mu, _z0, _zt, t):
         b2 = m * (lam ** 2 + mu ** 2) * ((_z0 / _zt) - 1)
         b = b1 + b2
         c = mu * (m - 1) * (mu - lam * m)
-    if a == 0 and b > 0:
+    if a == 0:
         w = -c / b
     elif (b ** 2 - 4 * a * c) < 0:
         raise Exception
@@ -90,23 +90,31 @@ def w_fun_high_precision(lam, mu, _z0, _zt, t):
     return w
 
 
-def probability_gwasa(z0, zt, t, param, b_rate, d_rate):
+def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *Galton-Watson saddlepoint approximation* method.
 
     To use this function call :func:`birdepy.probability` with `method` set to
     'gwasa'::
 
-        birdepy.probability(z0, zt, t, param, method='gwasa')
+        birdepy.probability(z0, zt, t, param, method='gwasa', anchor='midpoint')
 
-    This function does not have any arguments which are not already described
-    by the documentation of :func:`birdepy.probability`
+    The parameters associated with this method (listed below) can be
+    accessed using kwargs in :func:`birdepy.probability()`. See documentation
+    of :func:`birdepy.probability` for the main arguments.
+
+    Parameters
+    ----------
+    anchor : string, optional
+        Determines which state z is used to determine the linear approximation.
+        Should be one of: 'initial' (z0 is used), 'midpoint' (default, 0.5*(z0+zt) is used)
+        or 'terminal' (zt is used).
 
     Examples
     --------
     >>> import birdepy as bd
     >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='gwasa')[0][0]
-    0.0056424652895640266
+    0.002271944691896704
 
     Notes
     -----
@@ -133,22 +141,19 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate):
     """
 
     def prob(_z0, _zt, _t):
-
-        lam = b_rate(_z0, param) / _z0
-        mu = d_rate(_z0, param) / _z0
-        with np.errstate(divide='raise', over='raise', under='raise',
-                         invalid='raise'):
-            try:
-                w = w_fun(lam, mu, _z0, _zt, _t)
-            except:
-                w = w_fun_high_precision(lam, mu, _z0, _zt, _t)
-        if w == 0:
-            w = 1e-100
-            warnings.warn(
-                "A value of w equal to 0 has been encountered and "
-                "w was replaced by a default value. The results "
-                "may be unreliable.",
-                category=RuntimeWarning)
+        if anchor == 'midpoint':
+            midpoint = 0.5*(_z0+_zt)
+            lam = b_rate(midpoint, param) / midpoint
+            mu = d_rate(midpoint, param) / midpoint
+        elif anchor == 'initial':
+            lam = b_rate(_z0, param) / _z0
+            mu = d_rate(_z0, param) / _z0
+        elif anchor == 'terminal':
+            lam = b_rate(_zt, param) / _zt
+            mu = d_rate(_zt, param) / _zt
+        else:
+            raise TypeError("Argument 'anchor' has an unknown value. Should be one of 'midpoint'"
+                            " 'initial' or 'terminal'.")
         if _z0 == 0 and _zt > 0:
             raise TypeError("Methods 'gwa' and 'gwasa' are not suitable for "
                             "datasets that include transitions away "
@@ -162,6 +167,19 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate):
             pr = ut.p_lin(_z0, 1, b_rate(_z0, param) / _z0,
                           d_rate(_z0, param) / _z0, _t)
         else:
+            with np.errstate(divide='raise', over='raise', under='raise',
+                             invalid='raise'):
+                try:
+                    w = w_fun(lam, mu, _z0, _zt, _t)
+                except:
+                    w = w_fun_high_precision(lam, mu, _z0, _zt, _t)
+            if w == 0:
+                w = 1e-100
+                warnings.warn(
+                    "A value of w equal to 0 has been encountered and "
+                    " w was replaced by a default value. The results "
+                    " may be unreliable.",
+                    category=RuntimeWarning)            
             with np.errstate(divide='raise', over='raise', under='raise',
                              invalid='raise'):
                 try:
