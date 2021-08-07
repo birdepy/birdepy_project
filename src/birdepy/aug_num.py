@@ -38,12 +38,13 @@ def aug_bld_num(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
                 p_mat_1[row_idx, :] = p_mat_1[row_idx, :]/row_sum
             else:
                 p_mat_1[row_idx, :] = 1/states.size
-        output[0, :, :] = p_mat_1[np.ix_(states - z_min, states - z_min)]
+        output[0, :, :] = p_mat_1[np.ix_(np.array(states - z_min, dtype=np.int32),
+                                         np.array(states - z_min, dtype=np.int32))]
         p_mat_power = p_mat_1
         for idx in range(1, t_linspace.size):
             p_mat_power = np.matmul(p_mat_power, p_mat_1)
-            output[idx, :, :] = p_mat_power[np.ix_(states - z_min,
-                                                   states - z_min)]
+            output[idx, :, :] = p_mat_power[np.ix_(np.array(states - z_min, dtype=np.int32),
+                                            np.array(states - z_min, dtype=np.int32))]
         p_mats[_t] = output
 
 

@@ -14,7 +14,6 @@ def aug_bld_ilt(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
     state z, the number of down jumps from z, and the time spent in z
     when the process transitions from z0 to zt in elapsed time t.
     """
-
     def udh(z0, zt, t, z):
         pr = probability(z0, zt, t, param, model, likelihood, z_trunc=z_trunc,
                          options=options)[0][0]

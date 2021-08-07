@@ -50,11 +50,13 @@ def probability_expm(z0, zt, t, param, b_rate, d_rate, z_trunc):
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         p_mat = expm(np.multiply(q_mat, t))
-        output = p_mat[np.ix_(z0 - z_min, zt - z_min)]
+        output = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
+                              np.array(zt - z_min, dtype=np.int32))]
     else:
         output = np.zeros((t.size, z0.size, zt.size))
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
             p_mat = expm(np.multiply(q_mat, t[idx]))
-            output[idx, :, :] = p_mat[np.ix_(z0 - z_min, zt - z_min)]
+            output[idx, :, :] = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
+                                             np.array(zt - z_min, dtype=np.int32))]
     return output

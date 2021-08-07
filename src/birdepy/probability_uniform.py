@@ -83,16 +83,18 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
     """
     z_min, z_max = z_trunc
 
-    num_states = z_max - z_min + 1
+    num_states = int(z_max - z_min + 1)
 
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         p_mat = p_mat_bld_uniform(q_mat, t, k, num_states)
-        output = p_mat[np.ix_(z0 - z_min, zt - z_min)]
+        output = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
+                              np.array(zt - z_min, dtype=np.int32))]
     else:
         output = np.zeros((t.size, z0.size, zt.size))
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
             p_mat = p_mat_bld_uniform(q_mat, t[idx], k, num_states)
-            output[idx, :, :] = p_mat[np.ix_(z0 - z_min, zt - z_min)]
+            output[idx, :, :] = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
+                                             np.array(zt - z_min, dtype=np.int32))]
     return output

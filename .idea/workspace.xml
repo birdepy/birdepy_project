@@ -1,33 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="e375fc24-c7f3-4bd0-aed7-6df38e5c9ec1" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+    <list default="true" id="9274d6f3-52d9-41e0-a17c-87025bdbe395" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/dist/birdepy-0.0.4-py3-none-any.whl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/birdepy-0.0.4.tar.gz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/release_notes_draft.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/PKG-INFO" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/SOURCES.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/dependency_links.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/entry_points.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/requires.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/top_level.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/birdepy/iltcme.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/birdepy_project.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/birdepy_project.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/other.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/other.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace (DESKTOP-JL9136C's conflicted copy 2021-07-20).xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MANIFEST.in" beforeDir="false" afterPath="$PROJECT_DIR$/MANIFEST.in" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_expm.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_num.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_num.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/iltcme.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_abc.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_abc.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_em.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_lse.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_lse.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_probability.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_da.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_da.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_expm.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_ilt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_oua.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_oua.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_sim.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_sim.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/simulate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/simulate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_fm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_fm.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/readme.txt" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,16 +51,13 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectId" id="1vZ3izSsJQbnuy4iWSqWzbD2Uqg" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
-    <ConfirmationsSetting value="2" id="Add" />
-  </component>
+  <component name="ProjectId" id="1w1BPArK5U1dRvUdHTWYdyVoxtF" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
-    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -55,34 +66,57 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
   </component>
+  <component name="RunManager">
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <module name="birdepy_project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="e375fc24-c7f3-4bd0-aed7-6df38e5c9ec1" name="Default Changelist" comment="" />
-      <created>1626755916341</created>
+      <changelist id="9274d6f3-52d9-41e0-a17c-87025bdbe395" name="Default Changelist" comment="" />
+      <created>1627616187983</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1626755916341</updated>
-      <workItem from="1626755926120" duration="216000" />
-      <workItem from="1626765513498" duration="3351000" />
+      <updated>1627616187983</updated>
+      <workItem from="1627616200259" duration="7179000" />
+      <workItem from="1627658407508" duration="211000" />
+      <workItem from="1627820947879" duration="94000" />
+      <workItem from="1627821104014" duration="1144000" />
+      <workItem from="1627867876598" duration="5486000" />
+      <workItem from="1627900420819" duration="707000" />
+      <workItem from="1627987421264" duration="2831000" />
+      <workItem from="1628073258888" duration="2525000" />
+      <workItem from="1628088814978" duration="2780000" />
+      <workItem from="1628146046363" duration="597000" />
+      <workItem from="1628163504431" duration="26000" />
+      <workItem from="1628164793413" duration="25000" />
+      <workItem from="1628165887460" duration="13863000" />
+      <workItem from="1628221077731" duration="7661000" />
+      <workItem from="1628313399697" duration="1214000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
-  </component>
-  <component name="Vcs.Log.Tabs.Properties">
-    <option name="TAB_STATES">
-      <map>
-        <entry key="MAIN">
-          <value>
-            <State />
-          </value>
-        </entry>
-      </map>
-    </option>
-  </component>
-  <component name="VcsManagerConfiguration">
-    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
 </project>

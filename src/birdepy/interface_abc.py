@@ -1,14 +1,14 @@
 import numpy as np
 import birdepy.utility as ut
 import birdepy.simulate as simulate
-
+from scipy import optimize
+from sklearn.mixture import GaussianMixture
 
 def default_distance(eps, data_pairs):
     data_pairs = np.array(data_pairs)
     dist = np.sqrt(np.sum(np.square(data_pairs[:, 0] -
                                     data_pairs[:, 1]))
-                   / data_pairs.shape[0]) \
-           - eps
+                   ) - eps
     return dist
 
 
@@ -32,7 +32,7 @@ def determine_prior(p_bounds, rng, con):
     return 1 / ((successes / 10 ** 3) * np.prod(p_bounds[:, 1] - p_bounds[:, 0]))
 
 
-def basic_abc(sorted_data, gm, eps, distance, it, k, method, b_rate,
+def basic_abc(sorted_data, gm, eps, distance, stat, it, k, method, b_rate,
               d_rate, idx_known_p, known_p, p_bounds, con, tau, rng,
               display):
     param_samples = np.empty((k, p_bounds.shape[0]))
@@ -91,12 +91,17 @@ def basic_abc(sorted_data, gm, eps, distance, it, k, method, b_rate,
                 break
         if display:
             print(f"Iteration ", it, f" is ", 100 * (idx + 1) / k, f"% complete.")
-    return np.mean(param_samples, 0), param_samples, list_of_data_pairs
+    if stat == 'mean':
+        return np.mean(param_samples, 0), param_samples, list_of_data_pairs
+    elif stat == 'median':
+        return np.median(param_samples, 0), param_samples, list_of_data_pairs
+    else:
+        raise TypeError("Argument of 'stat' has an unknown value.")
 
 
-def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
+def discrete_est_abc(sorted_data, eps0, distance, stat, k, its, c, method,
                      b_rate, d_rate, idx_known_p, known_p, p_bounds, con, tau,
-                     seed, display):
+                     rng, display):
     """Parameter estimation for discretely observed continuous-time
     birth-and-death processes using approximate Bayesian computation.
     See :ref:`here <Approximate Bayesian Computation>` for more information.
@@ -104,8 +109,8 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
     To use this function call :func:`birdepy.estimate` with `framework` set to
     'abc'::
 
-        birdepy.estimate(t_data, p_data, p0, p_bounds, framework='abc', eps0=10, k=100, its=1,
-                         method='gwa', tau=None, seed=None, distance=None, c=2)
+        birdepy.estimate(t_data, p_data, p0, p_bounds, framework='abc', eps0=10, k=100, its=2,
+                         method='gwa', tau=None, seed=None, distance=None, stat='median', c=2)
 
     The parameters associated with this framework (listed below) can be
     accessed using kwargs in :func:`birdepy.estimate()`. See documentation of
@@ -147,6 +152,10 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
     distance : callable, optional
         Computes the distance between simulated data and observed data.
 
+    stat : string, optional
+        Determines whcih statistic is used to summarize the posterior distribution.
+         Should be one of: 'mean' or 'median'.
+
     c : int, optional
         Number of mixture components in the mixed multivariate normal which is
         used as a posterior distribution when updating epsilon over iterations.
@@ -162,10 +171,6 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
 
     Assume that the death rate and population size are known, then estimate the rate of spread:
 
-    >>> import birdepy as bd
-    >>> t_data = [t for t in range(100)]
-    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
-    ...                               survival=True, seed=2021)
     >>> est = bd.estimate(t_data, p_data, [0.5], [[0,1]], framework='abc',
     ...                   model='Ricker', idx_known_p=[1, 2, 3],
     ...                   known_p=[0.25, 0.02, 1], display=True, its=2, seed=2021)
@@ -195,10 +200,6 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
     .. [2] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.
     """
-    if seed is None:
-        rng = np.random.default_rng()
-    else:
-        rng = np.random.default_rng(seed)
     if distance is None:
         distance = default_distance
 
@@ -207,17 +208,15 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
 
     if its == 1:
         est, sample, list_of_data_pairs = \
-            basic_abc(sorted_data, 0, eps0, distance, 1, k, method,
+            basic_abc(sorted_data, 0, eps0, distance, stat, 1, k, method,
                       b_rate, d_rate, idx_known_p, known_p, p_bounds, con,
                       tau, rng, display)
         if p_bounds.shape[0] > 1:
             cov = np.cov(sample, rowvar=False)
         else:
-            cov = [np.cov(np.array(sample), rowvar=False)]
+            cov = np.array([[np.var(sample)]])
         return est, cov, sample
     else:
-        from scipy import optimize
-        from sklearn.mixture import GaussianMixture
         estimates = []
         list_of_samples = []
         gm = 0
@@ -225,7 +224,7 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
         current_epsilon = eps0
         for it in range(1, its + 1):
             est, sample, list_of_data_pairs = \
-                basic_abc(sorted_data, gm, current_epsilon, distance, it,
+                basic_abc(sorted_data, gm, current_epsilon, distance, stat, it,
                           k, method, b_rate, d_rate, idx_known_p, known_p,
                           p_bounds, con, tau, rng, display)
             estimates.append(est)
@@ -253,5 +252,5 @@ def discrete_est_abc(sorted_data, eps0, distance, k, its, c, method,
         if p_bounds.shape[0] > 1:
             cov = np.cov(np.array(sample), rowvar=False)
         else:
-            cov = [np.cov(np.array(sample), rowvar=False)]
+            cov = np.array([[np.var(sample)]])
         return estimates, cov, list_of_samples

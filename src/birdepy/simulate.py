@@ -20,7 +20,6 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
         <Birth-and-death Processes>`). Should be one of:
 
             - 'Verhulst' (default)
-            - 'Verhulst'
             - 'Ricker'
             - 'Hassell'
             - 'MS-S'
@@ -37,7 +36,7 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
          specified. See :ref:`here <Custom Models>` for more information.
 
     z0: int or callable
-        The initial population for each sample path.
+        The initial population size for each sample path.
         If it is a callable it should be a function that has no arguments and
         returns an int:
 
@@ -65,7 +64,7 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
 
     survival : bool, optional
         If set to True, then the simulated sample paths are conditioned to
-        have a positive population size at the final observation time.  This
+        have a positive population size at the final observation time.  Since This
         can greatly increase computation time.
 
     seed : int, Generator, optional
@@ -112,7 +111,7 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
 
     :func:`birdepy.simulate.discrete()` :func:`birdepy.simulate.continuous()`
 
-    :func:`birdepy.gpu_functions.probability_gpu()`  :func:`birdepy.gpu_functions.discrete_gpu()`
+    :func:`birdepy.gpu_functions.probability()`  :func:`birdepy.gpu_functions.discrete()`
 
     References
     ----------
@@ -376,7 +375,7 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
          specified. See :ref:`here <Custom Models>` for more information.
 
     z0: int or callable
-        The initial population for each sample path.
+        The initial population size for each sample path.
         If it is a callable it should be a function that has no arguments and
         returns an int:
 

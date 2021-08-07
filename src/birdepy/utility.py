@@ -1,14 +1,15 @@
 import numpy as np
 import mpmath as mp
-from scipy.optimize import minimize, differential_evolution
+from scipy.optimize import minimize, differential_evolution, NonlinearConstraint
 from scipy.optimize._numdiff import approx_derivative
 from scipy.stats import multivariate_normal
 import math
-import json
+from birdepy.iltcme import IltCmeParams
 from collections import Counter
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
+from gwr_inversion import gwr
 
 
 def Jacobian(fun, x, bounds):
@@ -24,86 +25,70 @@ def Hessian(fun, x, bounds):
                              x, bounds=bounds)
 
 
-def confidence_ellipse_2d(mean, cov, ax):
-    """
-    https://matplotlib.org/devdocs/gallery/statistics/confidence_ellipse.html
-    """
-    pearson = cov[0, 1] / np.sqrt(cov[0, 0] * cov[1, 1])
-    ell_radius_x = np.sqrt(1 + pearson)
-    ell_radius_y = np.sqrt(1 - pearson)
+def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
+    [Eval, Evec] = np.linalg.eig(cov)
+    Evec = -np.hstack((Evec[:, 1].reshape((2, 1)), Evec[:, 0].reshape((2, 1))))
+    xCenter = mean[0]
+    yCenter = mean[1]
+    theta = np.linspace(0, 2 * np.pi, 100)
+    x_vec = np.array([1, 0])
+    cosrotation = np.dot(x_vec, Evec[:, 1]) / \
+                  (np.linalg.norm(x_vec) * np.linalg.norm(Evec[:, 1]))
+    rotation = np.pi / 2 - np.arccos(cosrotation)
 
-    linestyles = ['dotted', 'dashed', 'solid']
-    for n_std in [1, 2, 3]:
-        ellipse = Ellipse((0, 0),
-                          width=ell_radius_x * 2,
-                          height=ell_radius_y * 2,
-                          edgecolor='black',
-                          facecolor='none',
-                          linestyle=linestyles[n_std - 1],
-                          linewidth=1,
-                          label=str(n_std) + r'$\sigma$')
-        scale_x = np.sqrt(cov[0, 0]) * n_std
-        mean_x = mean[0]
+    R = np.array([[np.sin(rotation), np.cos(rotation)],
+                  [-np.cos(rotation), np.sin(rotation)]])
 
-        scale_y = np.sqrt(cov[1, 1]) * n_std
-        mean_y = mean[1]
+    chisq = [1.368, 3.2188, 5.991]
 
-        transf = transforms.Affine2D() \
-            .rotate_deg(45) \
-            .scale(scale_x, scale_y) \
-            .translate(mean_x, mean_y)
+    x = np.empty((len(theta), len(chisq)))
+    y = np.empty((len(theta), len(chisq)))
+    xRadius = np.empty(len(chisq))
+    yRadius = np.empty(len(chisq))
 
-        ellipse.set_transform(transf + ax.transData)
-        ax.add_patch(ellipse)
-    return
+    x_plot = np.empty((len(theta), len(chisq)))
+    y_plot = np.empty((len(theta), len(chisq)))
 
+    rotated_Coords = np.empty((2, len(theta), len(chisq)))
 
-def confidence_region(mean=(), cov=(), obs=None, se_type='asymptotic'):
-    fig, ax = plt.subplots(figsize=(7, 5))
-    if len(mean) == 2:
-        # There are two unknown parameters
-        se = np.sqrt(np.diag(cov))
-        confidence_ellipse_2d(mean, cov, ax)
-        ax.set_xlabel('$\\theta_1$')
-        ax.set_ylabel('$\\theta_2$')
-        ax.scatter(mean[0], mean[1], c='k', label='Estimate', s=10)
-        if obs is not None:
-            ax.scatter(obs[:, 0], obs[:, 1], c='b', marker='^', s=5,
-                       label='Bootstrap\n samples')
-        ax.axis([mean[0] - 3.1 * se[0], mean[0] + 3.1 * se[0],
-                 mean[1] - 3.1 * se[1], mean[1] + 3.1 * se[1]])
-    elif len(mean) == 1:
-        # There is one unknown parameter
-        xx = np.linspace(mean - 3.1 * np.sqrt(cov),
-                         mean + 3.1 * np.sqrt(cov), 100)
+    for i in range(len(chisq)):
+        xRadius[i] = np.sqrt(chisq[i] * Eval[0])
+        yRadius[i] = np.sqrt(chisq[i] * Eval[1])
 
-        rv = multivariate_normal(mean[0], cov)
+        x[:, i] = xRadius[i] * np.cos(theta)
+        y[:, i] = yRadius[i] * np.sin(theta)
 
-        vals = np.zeros(xx.size)
+        rotated_Coords[:, :, i] = np.matmul(R, np.row_stack((x[:, i], y[:, i])))
 
-        for idx, x in enumerate(xx):
-            vals[idx] = rv.pdf(x)
+        x_plot[:, i] = rotated_Coords[0, :, i].T + xCenter
+        y_plot[:, i] = rotated_Coords[1, :, i].T + yCenter
 
-        plt.plot(xx, vals, c='black')
-        plt.scatter(mean, 0.1, s=2, c='black', label='Estimate')
-        plt.axvline(x=mean - np.sqrt(cov), linestyle='dotted', c='gray',
-                    label=r'$1\sigma$')
-        plt.axvline(x=mean + np.sqrt(cov), linestyle='dotted', c='gray')
-        plt.axvline(x=mean - 2 * np.sqrt(cov), linestyle='dashed', c='gray',
-                    label=r'2$\sigma$')
-        plt.axvline(x=mean + 2 * np.sqrt(cov), linestyle='dashed', c='gray')
-        ax.axvline(x=mean - 3 * np.sqrt(cov), linestyle='solid', c='gray',
-                    label=r'3$\sigma$')
-        plt.axvline(x=mean + 3 * np.sqrt(cov), linestyle='solid', c='gray')
-        plt.xlabel('$\\theta$')
-    if se_type == 'asymptotic':
-        ax.set_title('Asymptotic confidence region')
-    elif se_type == 'simulated':
-        ax.set_title('Simulated confidence region')
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.show()
+    fig, (ax) = plt.subplots(figsize=(7, 5))
 
+    labels = ['$50\%$', '$80\%$', '$95\%$']
+    linestyles = [':', '--', '-']
+
+    for i in range(len(chisq)):
+        ax.plot(x_plot[:, i], y_plot[:, i], label=labels[i],
+                linestyle=linestyles[i], color='k')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.plot(mean[0], mean[1], '+k', label="Estimate")
+    if obs is not None:
+        ax.scatter(obs[:, 0], obs[:, 1], c="b", marker="^", s=5,
+                   label="Simulated\n samples")
+    if se_type == "asymptotic":
+        ax.set_title("Asymptotic confidence region")
+    elif se_type == "simulated":
+        ax.set_title("Simulated confidence region")
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    fig.set_tight_layout({
+        'pad': 0
+    })
+    if isinstance(export, str):
+        import tikzplotlib
+        tikzplotlib.save(export + ".tex")
     return
 
 
@@ -194,10 +179,10 @@ def higher_birth(model):
         return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * z
     elif model == 'Hassell':
         return lambda z, p: \
-            p[0] * z / (1 + z / p[2]) ** p[3]
+            p[0] * z / (1 + p[2] * z) ** p[3]
     elif model == 'MS-S':
         return lambda z, p: \
-            p[0] * z / (1 + (z / p[2]) ** p[3])
+            p[0] * z / (1 + (p[2] * z) ** p[3])
     elif model == 'Moran':
         return lambda z, p: (z <= p[4]) * (
             (p[4] - z) * (p[0] * z * (1 - p[2]) / p[4] + p[1] * (p[4] - z) * p[3] / p[4]) / p[4])
@@ -247,15 +232,12 @@ def higher_h_fun(model):
         return lambda z, p: p[0]-p[1]-2*z*(p[0]*p[2]+p[1]*p[3])
     elif model == 'Ricker':
         return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * (1 - p[3]*(p[2] * z)**p[3]) - p[1]
-    elif model == 'Beverton-Holt':
-        return lambda z, p: ((p[0] - p[1]) * p[2] ** 2 + p[1] * z ** 2) / \
-                            (z + p[2]) ** 2
     elif model == 'Hassell':
-        return lambda z, p: (p[0] * (1 + z / p[2] - p[3] * z)) / \
-                            (1 + (z / p[2])) ** p[3] - p[1]
+        return lambda z, p: (p[0] * (1 + p[2]*z - p[3] * z)) / \
+                            (1 + (p[2] * z)) ** p[3] - p[1]
     elif model == 'MS-S':
-        return lambda z, p: (p[0] * (1 + (z / p[2]) ** p[3] * (1 - p[3]))) / \
-                            (1 + (z / p[2]) ** p[3]) ** 2
+        return lambda z, p: (p[0] * (1 + (p[2] * z) ** p[3] * (1 - p[3]))) / \
+                            (1 + (p[2] * z) ** p[3]) ** 2
     elif model == 'Moran':
         return lambda z, p: (z*p[0]*(p[4]*(1-p[2])-z) + p[1]*(z-[4])*(z-p[4]*p[3]))\
                             / p[4]**2
@@ -282,12 +264,10 @@ def higher_zf_bld(model):
         return lambda p: [0, (p[0]-p[1])/(p[2]*p[0] + p[1]*p[3])]
     elif model == 'Ricker':
         return lambda p: [0, ((np.log(p[0] / p[1]))**(1/p[3])) / p[2]]
-    elif model == 'Beverton-Holt':
-        return lambda p: [0, p[2] * (p[0] - p[1]) / p[1]]
     elif model == 'Hassell':
-        return lambda p: [0, p[2] * ((p[0] / p[1]) ** (1 / p[3]) - 1)]
+        return lambda p: [0, ((p[0] / p[1]) ** (1 / p[3]) - 1)/p[2]]
     elif model == 'MS-S':
-        return lambda p: [0, p[2] * (p[0] / p[1] - 1) ** (1 / p[3])]
+        return lambda p: [0, ((p[0] / p[1] - 1) ** (1 / p[3]))/p[2]]
     elif model == 'Moran':
         return lambda p: [p[4]*(p[0]*(1-p[2])-p[1]*(1+p[3]) + np.sqrt((p[2]-1)**2 * p[0]**2 + 2 * p[0] * p[1]*(p[2]+p[3]+p[2]*p[3]-1) + p[1] ** 2 *(p[3]-1)**2))/(2*(p[0]-p[1])),
                           p[4]*(p[0]*(1-p[2])-p[1]*(1+p[3]) - np.sqrt((p[2]-1)**2 * p[0]**2 + 2 * p[0] * p[1]*(p[2]+p[3]+p[2]*p[3]-1) + p[1] ** 2 *(p[3]-1)**2))/(2*(p[0]-p[1]))]
@@ -311,7 +291,7 @@ def higher_zf_bld(model):
 
 
 def q_mat_bld(z_min, z_max, p, b_rate, d_rate):
-    num_states = z_max - z_min + 1
+    num_states = int(z_max - z_min + 1)
     states = np.arange(z_min, z_max + 1, 1)
     q_mat = np.zeros((num_states, num_states))
     q_mat[-1, -1] = -d_rate(z_max, p)
@@ -342,12 +322,9 @@ def p_bld(p_prop, idx_known_p, known_p):
 
 def laplace_invert_mexp(fun, t, max_fun_evals, method="cme"):
     if method == "cme":
-        if "cmeParams" not in globals():
-            with open('birdepy/iltcme.json') as f:
-                globals()["cmeParams"] = json.load(f)
         # find the most steep CME satisfying max_fun_evals
-        params = cmeParams[0]
-        for p in cmeParams:
+        params = IltCmeParams.params[0]
+        for p in IltCmeParams.params:
             if p["cv2"] < params["cv2"] and (p["n"] + 1) <= max_fun_evals:
                 params = p
         eta = np.concatenate(([params["c"]],
@@ -402,9 +379,8 @@ def cme(fun, t, k):
         global cme_eta
         global cme_beta
         cme_k = k
-        all_cme_params = json.load(open('birdepy/iltcme.json'))
-        cme_params = all_cme_params[0]
-        for p in all_cme_params:
+        cme_params = IltCmeParams.params[0]
+        for p in IltCmeParams.params:
             if p['cv2'] < cme_params['cv2'] and (p['n'] + 1) <= cme_k:
                 cme_params = p
         cme_eta = [cme_params['a'][idx] + 1j * cme_params['b'][idx] for idx in
@@ -430,7 +406,6 @@ def laplace_invert(fun, t, **options):
     else:
         k = 25
     if laplace_method == 'gwr':
-        from gwr_inversion import gwr
         return float(gwr(fun, time=t, M=k))
     elif laplace_method in ['cme', 'euler', 'gaver']:
         return laplace_invert_mexp(fun, [t], k, method=laplace_method)[0]
@@ -522,6 +497,9 @@ def add_options(options):
 
 def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
     if opt_method == 'differential-evolution':
+        if con != ():
+            old_con = con
+            con= (NonlinearConstraint(con['fun'], 0, np.inf))
         sol = differential_evolution(error_fun, p_bounds, args=(),
                                      strategy=options['strategy'],
                                      maxiter=options['maxiter'],
@@ -533,11 +511,17 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
                                      seed=options['seed'],
                                      callback=options['callback'],
                                      disp=options['disp'],
-                                     polish=options['polish'],
+                                     polish=False,
                                      init=options['init'],
                                      atol=options['atol'],
                                      updating=options['updating'],
                                      constraints=con)
+        if options['polish']:
+            if con != ():
+                sol = minimize(error_fun, sol.x, method='SLSQP', bounds=p_bounds,
+                               constraints=old_con)
+            else:
+                sol = minimize(error_fun, sol.x, method='L-BFGS-B', bounds=p_bounds)
     elif opt_method == 'L-BFGS-B':
         sol = minimize(error_fun, p0, method=opt_method, bounds=p_bounds,
                        callback=options['callback'],
