@@ -5,43 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9274d6f3-52d9-41e0-a17c-87025bdbe395" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/dist/birdepy-0.0.4-py3-none-any.whl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dist/birdepy-0.0.4.tar.gz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/release_notes_draft.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/PKG-INFO" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/SOURCES.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/dependency_links.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/entry_points.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/requires.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy.egg-info/top_level.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/birdepy/iltcme.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/birdepy_project.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/birdepy_project.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/other.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/other.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace (DESKTOP-JL9136C's conflicted copy 2021-07-20).xml" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/dist/birdepy-0.0.7.tar.gz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MANIFEST.in" beforeDir="false" afterPath="$PROJECT_DIR$/MANIFEST.in" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/birdepy-0.0.6-py3-none-any.whl" beforeDir="false" afterPath="$PROJECT_DIR$/dist/birdepy-0.0.7-py3-none-any.whl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/birdepy-0.0.6.tar.gz" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_expm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_num.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_num.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/iltcme.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_abc.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_abc.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_em.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy.egg-info/PKG-INFO" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy.egg-info/PKG-INFO" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_probability.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_da.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_da.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_expm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/simulate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/simulate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/readme.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_sim.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_sim.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_da.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_erlang.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_expm.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_gwa.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_gwasa.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_ilt.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_oua.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/prob_uniform.tex" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -113,6 +92,8 @@
       <workItem from="1628165887460" duration="13863000" />
       <workItem from="1628221077731" duration="7661000" />
       <workItem from="1628313399697" duration="1214000" />
+      <workItem from="1628346731144" duration="3015000" />
+      <workItem from="1628437298009" duration="7000" />
     </task>
     <servers />
   </component>

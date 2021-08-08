@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: birdepy
-Version: 0.0.6
+Version: 0.0.7
 Summary: Parameter estimation for birth-and-death processes
 Home-page: https://birdepy.github.io
 Author: Sophie Hautphenne and Brendan Patch
