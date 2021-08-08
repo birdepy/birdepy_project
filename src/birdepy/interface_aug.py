@@ -8,6 +8,18 @@ import mpmath as mp
 
 def f_fun_bld(sorted_data, param, b_rate, d_rate, likelihood, technique,
               idx_known_p, known_p, model, z_trunc, j_tol, h_tol, options):
+    """
+    Returns the surrogate likelihood function for use in the
+    expectation-maximization algorithm. This function is defined inline in Section 2.1
+    of reference [1].
+
+    This function is used by the five em_*.py modules where * is cg, Lange, none,
+    qn1 or qn2.
+
+    [1] Jamshidian, M., & Jennrich, R. I. (1997). Acceleration of the EM algorithm
+     by using quasi‐Newton methods. Journal of the Royal Statistical Society:
+     Series B (Statistical Methodology), 59(3), 569-587.
+    """
     param = ut.p_bld(param, idx_known_p, known_p)
     if technique == 'num':
         aug_data = _aug_num.aug_bld_num(sorted_data, param, b_rate, d_rate,

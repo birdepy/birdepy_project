@@ -8,6 +8,11 @@ from scipy.integrate import solve_ivp
 
 
 def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng):
+    """
+    Samples parameter values according to a truncated multivariate normal with
+    expected value given by argument 'param', covariance given by argument 'cov'
+    and truncated to support defined by 'p_bounds' and 'con'.
+    """
     while True:
         # First obtain proposal satisfying bounds:
         while True:
@@ -40,6 +45,11 @@ def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng):
 
 def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
                shift_times, n, rng):
+    """
+    Generates an approximation to the expected value of a population-size-dependent
+    birth-and-death process using a deterministic (fluid) approximation or
+    simulation.
+    """
     if method == 'fm':
         if callable(z0):
             z0_ = z0()
@@ -213,24 +223,24 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
 
     Examples
     --------
-    First simulate some sample paths using :func:`birdepy.simulate.discrete()`:
+    First simulate some sample paths using : :`birdepy.simulate.discrete()`: ::
 
-    >>> import birdepy as bd
-    >>> t_data = [t for t in range(101)]
-    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
-    ...                               survival=True, seed=2021)
+        import birdepy as bd
+        t_data = [t for t in range(101)]
+        p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+                                      survival=True, seed=2021)
 
-    Then, using the simulated data, estimate the parameters:
+    Then, using the simulated data, estimate the parameters: ::
 
-    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
-    ...                   model='Ricker', idx_known_p=[3], known_p=[1])
+        est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+                          model='Ricker', idx_known_p=[3], known_p=[1])
 
-    Then, use the estimated parameters and covariances to generate a forecast:
+    Then, use the estimated parameters and covariances to generate a forecast: ::
 
-    >>> future_t = [t for t in range(101,151,1)]
-    >>> bd.forecast('Ricker', p_data[-1], future_t, est.p, cov=est.cov,
-    ...             p_bounds=[[0,1], [0,1], [0, 0.1]], idx_known_p=[3], known_p=[1],
-    ...             interval='prediction')
+        future_t = [t for t in range(101,151,1)]
+        bd.forecast('Ricker', p_data[-1], future_t, est.p, cov=est.cov,
+                    p_bounds=[[0,1], [0,1], [0, 0.1]], idx_known_p=[3], known_p=[1],
+                    interval='prediction')
 
 
     Notes
@@ -261,22 +271,23 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
+    # Convert times into a numpy array
     times = np.array(times)
 
+    # Prepare for plotting
     if type(xticks) == str:
         xticks = times
-
     if type(xticks) is list:
         xticks = times
     else:
         xticks = np.array(xticks)
-
     if ylabel == 'default':
         if interval == 'confidence':
             ylabel = '$\mathbb{E} Z(t)$'
         else:
             ylabel = '$Z(t)'
 
+    # Determine method for computing sample paths
     if interval == 'confidence' and method is None:
         method = 'fm'
     elif interval == 'prediction' and method is None:
@@ -285,11 +296,14 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         TypeError("Argument of `method` equal 'fm' not possible when argument "
                   "of `interval` equals 'prediction'.")
 
+    # Shift the times so that the earliest observation is time 0
     shift_times = times - times[0]
 
+    # Covariance matrix must be an array, convert to array if it is a float or int
     if type(cov) == float or type(cov) == int:
         cov = [[cov]]
 
+    # Define the model-dependent birth and death rate functions
     if model == 'custom':
         b_rate = options['b_rate']
         d_rate = options['d_rate']
@@ -297,18 +311,22 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         b_rate = ut.higher_birth(model)
         d_rate = ut.higher_death(model)
 
+    # Set the random number generator
     if seed is None:
         rng = np.random.default_rng()
     else:
         rng = np.random.default_rng(seed)
 
-    #
-
+    # These are the methods we try to solve differential equations with in scipy.integrate.solve_ivp
     solver_methods = ['RK45', 'Radau', 'RK23', 'BDF', 'DOP853']
 
+    # Initialise a plot
     fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
 
+    # A difference procedure needs to be followed depending on whether a
+    # 'confidence' or 'prediction' forecast is requested
     if interval == 'confidence':
+        # Confidence region is not possible if no covariance matrix is provided
         if cov is None:
             warnings.warn("Confidence intervals show the likely range of the mean "
                           "future population level given the uncertainty of the "
@@ -319,19 +337,27 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
                                    solver_methods, shift_times, n, rng)
             ax1.plot(times, forecast_, color='k')
         else:
+            # Create an array to store samples in
             samples = np.zeros((k, times.shape[0]))
             for idx in range(k):
+                # Sample new parameters
                 param_prop = parameter_sampler(param, cov, p_bounds, known_p,
                                                idx_known_p, con, rng)
+                # Generate a mean curve corresponding to the sampled parameters
                 samples[idx, :] = mean_curve(param_prop, b_rate, d_rate,
                                              method, z0, solver_methods,
                                              shift_times, n, rng)
+                # Print a progress indicator (if requested)
                 if display:
                     print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
     elif interval == 'prediction':
+        # Create an array to store samples in
         samples = np.zeros((k, times.shape[0]))
+        # If no covariance matrix is provided the prediction interval only accounts for model
+        # stochasticity
         if cov is None:
             for idx in range(k):
+                # Generate sample path of process using estimated parameters
                 samples[idx, :] = simulate.discrete(param, 'custom', z0,
                                                     shift_times,
                                                     b_rate=b_rate,
@@ -355,12 +381,15 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     else:
         raise TypeError("Argument 'interval' has an unknown value.")
 
+    # Determine number of partitions to split the samples into
     m = len(percentiles)
+    # Determine percentile curves
     SDist = np.zeros((times.shape[0], m))
     for i in range(m):
         for t in range(times.shape[0]):
             SDist[t, i] = np.percentile(samples[:, t], percentiles[i])
     half = int(np.floor((m - 1) / 2))
+    # Plot the results
     fig.canvas.draw()
     ax1.plot(times, SDist[:, half], color='k')
     for i in range(half-1):
@@ -374,6 +403,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     ax1.set_xticklabels(labels, rotation=rotation)
     ax1.set_ylabel(ylabel, fontsize=14)
     fig.tight_layout()
+    # If requested a tex file can be created
     if isinstance(export, str):
         import tikzplotlib
         tikzplotlib.save(export + ".tex")

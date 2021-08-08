@@ -1,14 +1,14 @@
 from __future__ import print_function, absolute_import
 import numpy as np
-import birdepy.utility as ut
 from numba import cuda
 import math
 from numba.cuda.random import create_xoroshiro128p_states
 from numba.cuda.random import xoroshiro128p_uniform_float64 as rand
 from collections import Counter
+import sys
 
 
-def discrete(param, model, z0, t, k=1, survival=False, seed=1):
+def discrete(param, model, z0, t, k=1, survival=False, seed=None):
     """Simulation of continuous-time birth-and-death processes at time 't'
     using CUDA.
 
@@ -67,11 +67,11 @@ def discrete(param, model, z0, t, k=1, survival=False, seed=1):
     --------
     Simulating 10 ** 8 sample paths of an M/M/inf queue with
     service rates 0.4 and arrival rate 0.2, with 10 items initially in the queue,
-    observed at time 1.0:
+    observed at time 1.0: ::
 
-    >>> from birdepy import gpu_functions as bdg
-    >>> bdg.discrete([0.2, 0.4], 'M/M/inf', 10, 1.0, k=10**8)
-    array([8, 6, 3, ..., 8, 7, 9], dtype=int64)
+        from birdepy import gpu_functions as bdg
+        bdg.discrete([0.2, 0.4], 'M/M/inf', 10, 1.0, k=10**8)
+                     array([8, 6, 3, ..., 8, 7, 9], dtype=int64)
 
     Notes
     -----
@@ -105,11 +105,21 @@ def discrete(param, model, z0, t, k=1, survival=False, seed=1):
     .. [3] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.
     """
+    # Convert parameters to tuple as this is accepted by the numba/cuda functions
     param = tuple(param)
     threads_per_block = 1024
+    # Determine the number of blocks such that the number of samples is at least k
     blocks = int(1 + k / threads_per_block)
+    # Determine a seed for the random number generator
+    if seed is None:
+        rng = np.random.default_rng()
+        seed = rng.integers(sys.maxsize)
+    # Initialise the random number generator
     rng_states = create_xoroshiro128p_states(threads_per_block * blocks, seed=seed)
     out = np.zeros(threads_per_block * blocks, dtype=np.int64)
+    # A different function is called depending on which model is of interest. The numba/cuda
+    # functions do not accept functions as input (at time of writing) so we cannot pass birth and
+    # death rate functions as we do for the CPU version of this code bd.simulate.discrete().
     if model == 'Verhulst':
         discrete_verhulst[blocks, threads_per_block](out, rng_states, param, z0, t, survival)
         return out
@@ -153,7 +163,7 @@ def discrete(param, model, z0, t, k=1, survival=False, seed=1):
         raise TypeError("Argument 'model' has an unknown value.")
 
 
-def probability(z0, zt, t, param, model, k=10**6, seed=1):
+def probability(z0, zt, t, param, model, k=10**6, seed=None):
     """Transition probabilities for continuous-time birth-and-death processes
     generated using Monte Carlo on a GPU.
 
@@ -217,14 +227,20 @@ def probability(z0, zt, t, param, model, k=10**6, seed=1):
 
     Examples
     --------
-    >>> from birdepy import gpu_functions as bdg
-    ... param = (210, 20, 0.002, 0, 100)
-    ... t = 0.2
-    ... z0 = [50, 60]
-    ... zt = [55, 56, 57, 58, 59,60]
-    ... bdg.probability(z0, zt, t, param, 'Moran', 10**6)
-    array([[3.09160e-02, 5.43120e-02, 8.09760e-02, 1.05968e-01, 1.23203e-01,1.27453e-01],
-       [0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 6.30000e-05]])
+    Estimate transition probabilities for a Moran model: ::
+
+        from birdepy import gpu_functions as bdg
+        param = (210, 20, 0.002, 0, 100)
+        t = 0.2
+        z0 = [50, 60]
+        zt = [55, 56, 57, 58, 59,60]
+        bdg.probability(z0, zt, t, param, 'Moran', 10**6)
+
+
+    Outputs: ::
+
+        array([[3.09160e-02, 5.43120e-02, 8.09760e-02, 1.05968e-01, 1.23203e-01,1.27453e-01],
+        [0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 0.00000e+00, 6.30000e-05]])
 
     Notes
     -----
@@ -254,7 +270,8 @@ def probability(z0, zt, t, param, model, k=10**6, seed=1):
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
-    param = tuple(param)
+
+    # Convert z0, zt, and t to common format used below
     if np.isscalar(z0):
         z0 = np.array([z0])
     else:
@@ -268,19 +285,33 @@ def probability(z0, zt, t, param, model, k=10**6, seed=1):
     else:
         t = np.array(t)
 
+    # Since bdg.discrete() can only accept a single time point we need to add an extra loop if more
+    # than one time point is requested. This is easiest to achieve by diverting into different code
+    # blocks depending on the number of time points.
     if t.size == 1:
+        # Initialize an array to store output
         output = np.zeros((z0.size, zt.size))
+        # Perform simulations using requested initial conditions
         for idx1, _z0 in enumerate(z0):
             sim = discrete(param, model, _z0, t[0], k, False, seed)
+            # For each simulation from a specific initial condition count the number of
+            # trajectories which fall into each terminal state
             counts = Counter(sim)
+            # Fill in the output array according to requested terminal states
             for idx2, _zt in enumerate(zt):
                 output[idx1, idx2] = counts[_zt]/k
     else:
+        # Initialize an array to store output
         output = np.zeros((t.size, z0.size, zt.size))
+        # Loop over requested times (note all simulations start at time 0)
         for idx3, _t in enumerate(t):
+            # Perform simulations using requested initial conditions
             for idx1, _z0 in enumerate(z0):
                 sim = discrete(param, model, _z0, _t, k, False, seed)
+                # For each simulation from a specific intitial condition count the number of
+                # trajectories which fall into each terminal state
                 counts = Counter(sim)
+                # Fill in the output array according to requested terminal states
                 for idx2, _zt in enumerate(zt):
                     output[idx3, idx1, idx2] = counts[_zt] / k
     return output
@@ -288,6 +319,12 @@ def probability(z0, zt, t, param, model, k=10**6, seed=1):
 
 @cuda.jit
 def discrete_verhulst(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process Verhulst model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -322,6 +359,12 @@ def discrete_verhulst(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_ricker(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process Ricker model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -356,6 +399,12 @@ def discrete_ricker(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_bh(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process Beverton-Holt model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -390,6 +439,12 @@ def discrete_bh(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_hassell(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process Hassell model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -424,6 +479,12 @@ def discrete_hassell(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_mss(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process MaynardSmith-Slatkin model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -458,6 +519,12 @@ def discrete_mss(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_moran(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process Moran model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -496,6 +563,12 @@ def discrete_moran(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_pb(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time pure birth process model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -530,6 +603,12 @@ def discrete_pb(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_pd(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time pure death process model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -564,6 +643,11 @@ def discrete_pd(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_poisson(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of Poisson process model at discrete observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -599,6 +683,12 @@ def discrete_poisson(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_linear(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process linear model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -633,6 +723,12 @@ def discrete_linear(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_lm(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process linear-migration model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -667,6 +763,12 @@ def discrete_lm(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_mm1(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process single-server queue model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -701,6 +803,12 @@ def discrete_mm1(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_mminf(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process infinite-server queue model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):
@@ -735,6 +843,12 @@ def discrete_mminf(out, rng_states, p, z0, time, survival):
 
 @cuda.jit
 def discrete_loss(out, rng_states, p, z0, time, survival):
+    """
+    Simulation of continuous-time birth-and-death process loss-system model at discrete
+    observation times.
+
+    This function is used by :func:`bd.gpu_functions.discrete()`.
+    """
     thread_id = cuda.grid(1)
 
     def b_rate(z):

@@ -13,11 +13,19 @@ from gwr_inversion import gwr
 
 
 def Jacobian(fun, x, bounds):
+    """
+    Approximates the Jacobian of 'fun' at point 'x' without
+    evaluating the function outside of 'bounds'.
+    """
     bounds = [[b[0] for b in bounds], [b[1] for b in bounds]]
     return approx_derivative(fun, x, bounds=bounds)
 
 
 def Hessian(fun, x, bounds):
+    """
+    Approximates the Hessian of 'fun' at point 'x' without
+    evaluating the function outside of 'bounds'.
+    """
     bounds = [[b[0] for b in bounds], [b[1] for b in bounds]]
     return approx_derivative(lambda y: approx_derivative(fun,
                                                          y,
@@ -26,6 +34,10 @@ def Hessian(fun, x, bounds):
 
 
 def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
+    """
+    Determines and plots confidence regions for a multivariate normal
+    distribution with expected value 'mean' and covariance 'cov'.
+    """
     [Eval, Evec] = np.linalg.eig(cov)
     Evec = -np.hstack((Evec[:, 1].reshape((2, 1)), Evec[:, 0].reshape((2, 1))))
     xCenter = mean[0]
@@ -173,6 +185,10 @@ def data_sort_2(data):
 
 
 def higher_birth(model):
+    """
+    Returns a function that gives the birth rate as a function
+    of population size and parameters.
+    """
     if model == 'Verhulst':
         return lambda z, p: ((p[2]*z) <= 1) * p[0] * (1 - p[2]*z) * z
     elif model == 'Ricker':
@@ -207,6 +223,10 @@ def higher_birth(model):
 
 
 def higher_death(model):
+    """
+    Returns a function that gives the death rate as a function
+    of population size and parameters.
+    """
     if model == 'Verhulst':
         return lambda z, p: p[1] * (1 + p[3]*z) * z
     elif model in ['Ricker', 'Hassell',
@@ -228,6 +248,11 @@ def higher_death(model):
 
 
 def higher_h_fun(model):
+    """
+    Returns a function that gives the derivative with respect
+    to population size of the function given by the birth rate
+    minus the death rate.
+    """
     if model == 'Verhulst':
         return lambda z, p: p[0]-p[1]-2*z*(p[0]*p[2]+p[1]*p[3])
     elif model == 'Ricker':
@@ -260,6 +285,9 @@ def higher_h_fun(model):
 
 
 def higher_zf_bld(model):
+    """
+    Returns the fixed points of the fluid model associated with the model.
+    """
     if model == 'Verhulst':
         return lambda p: [0, (p[0]-p[1])/(p[2]*p[0] + p[1]*p[3])]
     elif model == 'Ricker':
@@ -275,22 +303,27 @@ def higher_zf_bld(model):
         return lambda p: [0]
     elif model == 'linear-migration':
         return lambda p: [-p[2] / (p[0] - p[1])]
+    elif model == 'Poisson':
+        return lambda p: [np.nan]
     elif model == 'M/M/1':
-        raise TypeError("It is not advised to use this function for the"
-                        "M/M/1 model.")
+        return lambda p: [np.nan]
     elif model == 'M/M/inf':
         return lambda p: [p[0] / p[1]]
     elif model == 'pure-birth':
-        return lambda z, p: [p[0]]
+        return lambda p: [np.nan]
     elif model == 'pure-death':
-        return lambda z, p: [-p[0]]
-    elif model == 'Poisson':
-        return lambda z, p: [0]
+        return lambda p: [np.nan]
+    elif model == 'loss-system':
+        return lambda p: [np.nan]
     else:
         raise TypeError("Unknown model.")
 
 
 def q_mat_bld(z_min, z_max, p, b_rate, d_rate):
+    """
+    Builds the transition rate matrix for a
+    population-size-dependent birth-and-death process.
+    """
     num_states = int(z_max - z_min + 1)
     states = np.arange(z_min, z_max + 1, 1)
     q_mat = np.zeros((num_states, num_states))
@@ -307,6 +340,10 @@ def q_mat_bld(z_min, z_max, p, b_rate, d_rate):
 
 
 def p_bld(p_prop, idx_known_p, known_p):
+    """
+    Augments parameters 'p_prop' with parameters 'known_p'
+    to form a complete vector of parameters.
+    """
     known_p = np.array(known_p)
     p_size = known_p.size + p_prop.size
     idx_known_p = list(idx_known_p)
@@ -321,6 +358,16 @@ def p_bld(p_prop, idx_known_p, known_p):
 
 
 def laplace_invert_mexp(fun, t, max_fun_evals, method="cme"):
+    """
+    Numerical Laplace transform inversion using the method of reference [1],
+    an Euler scheme or a Gaver scheme.
+
+    Uses code downloaded from https://inverselaplace.org/ in June of 2021.
+
+    [1] Horváth, G., Horváth, I., Almousa, S. A. D., & Telek, M. (2020).
+    Numerical inverse Laplace transformation using concentrated matrix
+    exponential distributions. Performance Evaluation, 137, 102067.
+    """
     if method == "cme":
         # find the most steep CME satisfying max_fun_evals
         params = IltCmeParams.params[0]
@@ -373,6 +420,15 @@ def laplace_invert_mexp(fun, t, max_fun_evals, method="cme"):
 
 
 def cme(fun, t, k):
+    """
+    Numerical Laplace transform inversion using the method of reference [1].
+
+    Is based on code downloaded from https://inverselaplace.org/ in June of 2021.
+
+    [1] Horváth, G., Horváth, I., Almousa, S. A. D., & Telek, M. (2020).
+    Numerical inverse Laplace transformation using concentrated matrix
+    exponential distributions. Performance Evaluation, 137, 102067.
+    """
     if 'cme_params' not in globals() or globals()['cme_k'] != k:
         global cme_params
         global cme_k
@@ -397,6 +453,9 @@ def cme(fun, t, k):
 
 
 def laplace_invert(fun, t, **options):
+    """
+    Numerical Laplace transform inversion using a variety of different methods.
+    """
     if 'laplace_method' in options.keys():
         laplace_method = options['laplace_method']
     else:
@@ -432,6 +491,11 @@ def laplace_invert(fun, t, **options):
 
 
 def add_options(options):
+    """
+    Completes the 'options' dictionary for use in :func:`minimize_`.
+    Is needed to enable BirDePy to specify default values for options
+    in the SciPy optimization functions.
+    """
     if 'seed' not in options.keys():
         options['seed'] = np.random.default_rng()
     if 'strategy' not in options.keys():
@@ -496,6 +560,9 @@ def add_options(options):
 
 
 def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
+    """
+    Minimizes 'error_fun' using the method specified by 'opt_method'.
+    """
     if opt_method == 'differential-evolution':
         if con != ():
             old_con = con

@@ -13,6 +13,8 @@ def aug_bld_num(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
     of down jumps from z, and the time spent in z when the process
     transitions from z0 to zt in elapsed time t (for any t that is a key
     in the dictionary `sorted_data`).
+
+    This function is called by :func:`bd.interface_aug.f_fun_bld()`.
     """
     if 'r' in options.keys():
         r = options['r']
@@ -49,6 +51,15 @@ def aug_bld_num(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
 
 
     def udh(z0, zt, t, z):
+        """
+        Computes the expected values defined by Equation (14) in
+        reference [1] using numerical integration.
+
+        [1] Crawford, F. W., Minin, V. N., & Suchard, M. A. (2014).
+        Estimation for general birth-death processes. Journal of
+        the American Statistical Association, 109(506), 730-747.
+
+        """
         t_linspace_ = np.linspace(0, t, 2 ** r + 1)
         pr = p_mats[t][-1, z0 - z_min, zt - z_min]
         probs1 = p_mats[t][:, z0 - z_min, z - z_min]

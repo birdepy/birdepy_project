@@ -13,6 +13,8 @@ def aug_bld_expm(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
     of down jumps from z, and the time spent in z when the process
     transitions from z0 to zt in elapsed time t (for any t that is a key
     in the dictionary `sorted_data`).
+
+    This function is called by :func:`bd.interface_aug.f_fun_bld()`.
     """
 
     z_min, z_max = z_trunc
@@ -45,6 +47,15 @@ def aug_bld_expm(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
             c_mat[zt - z_min, num_states + z0 - z_min] = 0  # Clean up for reuse
 
             def udh(z_):
+                """
+                Computes the expected values defined by Equation (14) in
+                reference [1].
+
+                [1] Crawford, F. W., Minin, V. N., & Suchard, M. A. (2014).
+                Estimation for general birth-death processes. Journal of
+                the American Statistical Association, 109(506), 730-747.
+
+                """
                 u = b_rate(z_, param) * \
                     conv_mat[z_ + 1 - z_min, z_ - z_min] / pr
                 d = d_rate(z_, param) * \

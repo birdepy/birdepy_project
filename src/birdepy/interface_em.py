@@ -19,7 +19,7 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     To use this function call :func:`birdepy.estimate` with `framework` set to
     'em'::
 
-        birdepy.estimate(t_data, p_data, p0, p_bounds, framework='em', technique='expm',
+        bd.estimate(t_data, p_data, p0, p_bounds, framework='em', technique='expm',
                          accelerator='none', likelihood='expm', laplace_method='cme-talbot',
                          lentz_eps=1e-6, max_it=25, i_tol=1e-2, j_tol=1e-1, h_tol=1e-2,
                          z_trunc=())
@@ -106,25 +106,25 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     Examples
     --------
     Use :func:`birdepy.simulate.discrete` to simulate a sample path of the 'Verhulst 2 (SIS)'
-    model:
+    model: ::
 
-    >>> import birdepy as bd
-    >>> t_data = [t for t in range(100)]
-    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
-    ...                               survival=True, seed=2021)
+        import birdepy as bd
+        t_data = [t for t in range(100)]
+        p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+                                      survival=True, seed=2021)
 
     Estimate the parameter values from the simulated data using the 'em'
-    `framework` with various `technique` and `accelerator` approaches.
+    `framework` with various `technique` and `accelerator` approaches: ::
+
+        for technique in ['expm', 'ilt', 'num']:
+            for accelerator in ['cg', 'none', 'Lange', 'qn1', 'qn2']:
+                tic = time.time()
+                est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
+                                  framework='em', technique=technique, accelerator=accelerator,
+                                  model='Ricker', idx_known_p=[3], known_p=[1])
 
     The constraint ``con={'type': 'ineq', 'fun': lambda p: p[0]-p[1]}`` ensures
     that p[0] > p[1] (i.e., rate of spread greater than recovery rate).
-
-    for technique in ['expm', 'ilt', 'num']:
-        for accelerator in ['cg', 'none', 'Lange', 'qn1', 'qn2']:
-            tic = time.time()
-            est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
-                              framework='em', technique=technique, accelerator=accelerator,
-                              model='Ricker', idx_known_p=[3], known_p=[1])
 
     A ``RuntimeWarning`` associated with SciPy's :func:`minimize` function  may
     appear, this can be ignored.
@@ -167,7 +167,11 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
       Society: Series B (Methodological), 59(3):569-587, 1997.
 
     """
+    # Sort the data into a format suitable for EM algorithms
     sorted_data = ut.data_sort_2(data)
+    # Each acceleration method is coded independently and stored in its own module.
+    # Inside this control flow parameter estimates are determined and the values of estimates in
+    # all iterations of the EM algorithm are also returned
     if accelerator == 'none':
         p_est, iterations = em_none.discrete_est_em_none(
             sorted_data, p0, likelihood, technique, known_p, idx_known_p,
@@ -202,6 +206,7 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
         raise ValueError("Argument 'accelerator' has an unknown value. Should "
                          "be one of: 'none', 'cg', 'Lange', 'qn1' or 'qn2'.")
 
+    # This part of the code is for finding the covariance matrix and log-likelihood at the estimate
     pre_ll_fun = bld_ll_fun(data, likelihood, model, z_trunc, options)
 
     def ll(p_prop):

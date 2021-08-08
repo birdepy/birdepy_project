@@ -8,13 +8,10 @@ def sq_bld(data, b_rate, d_rate, z_trunc):
     birth-and-death processes using the *matrix exponential least lse
     estimation* method.
 
-    To use this function call ``birdepy.estimate`` with `method` set to
-    `mexplse`::
+    To use this function call :func:`birdepy.estimate` with `framework` set to
+    'lse' and `squares` set to 'expm': ::
 
-        birdepy.estimate(t_data, p_data, method='mexplse', model='Verhulst 1',
-                         b_rate=None, d_rate=None, p_size=None, known_p=[],
-                         idx_known_p=[], p0=None, opt_method='L-BFGS-B',
-                         p_bounds=None, con=None, seed=None, z_trunc=None)
+        bd.estimate(t_data, p_data, p0, p_bounds, framework='lse', squares='expm', z_trunc=())
 
     See documentation of ``birdepy.estimate`` (see :ref:`here <Estimation>`)
     or use ``help(birdepy.estimate)`` for the rest of the arguments.
@@ -32,38 +29,35 @@ def sq_bld(data, b_rate, d_rate, z_trunc):
 
     Examples
     --------
-    >>> import birdepy as bd
-    >>> z0 = 19,
-    zt = 27
-    t = 1.0
-    N = 100
-    gamma = 0.5
-    nu = 0.3
-    p = [gamma, nu, N]
-    print(bd.probability(z0, zt, t, p, model='Verhulst 2 (SIS)', method='da', k=2)[0][0])
-    0.02937874214086395
+
 
     See also
     --------
-    birdepy.estimate
-    birdepy.forecast
+    :func:`birdepy.estimate()` :func:`birdepy.probability()` :func:`birdepy.forecast()`
+
+    :func:`birdepy.simulate.discrete()` :func:`birdepy.simulate.continuous()`
 
     References
     ----------
-    .. [1]
+    .. [1] Hautphenne, S. and Patch, B. BirDePy: Parameter estimation for
+     population-size-dependent birth-and-death processes in Python. ArXiV, 2021.
 
     .. [2] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
+    # Extract the min and max population sizes considered
     z_min, z_max = z_trunc
 
+    # Sort the data into a more efficient format
     sorted_data = ut.data_sort_2(data)
 
     def error_fun(param):
+        # Determine the transition rate matrix
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         err = 0
         for t in sorted_data:
+            # The transition probabilities follow from taking a matrix exponential
             p_mat = expm(np.multiply(q_mat, t))
             for i in sorted_data[t]:
                 expected_pop = np.dot(np.arange(z_min, z_max + 1, 1),

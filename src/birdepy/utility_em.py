@@ -7,7 +7,11 @@ import birdepy.utility as ut
 def line_search_ll(direction, data, p0, likelihood, known_p,
                    idx_known_p, model, z_trunc, p_bounds, con, opt_method,
                    options):
-
+    """
+    Returns a scalar that determines the maximum of 'likelihood' along
+    the subspace defined by 'direction' and point 'p0' satisfying constraints
+    defined by 'p_bounds' and 'con'.
+    """
     def upper_bound(a, index):
         return p_bounds[index][1] - p0[index] - a * direction[index]
 
@@ -44,10 +48,15 @@ def line_search_ll(direction, data, p0, likelihood, known_p,
 
     a_opt = ut.minimize_(error_fun, 1e-6, [], new_con, opt_method, options).x
 
-    return a_opt  # p0 + np.multiply(a_opt, direction)
+    return a_opt
 
 
 def help_bld_aug(udh, sorted_data, j_tol, h_tol, z_trunc):
+    """
+    Creates set of augmented data using a sorted data set. Is set up so that
+    expected values of up jumps, down jumps and holding times corresponding
+    to each transition z0 to zt only needs to be computed once.
+    """
     z_min, z_max = z_trunc
     aug_data = {}
     for t in sorted_data:
@@ -88,6 +97,11 @@ def help_bld_aug(udh, sorted_data, j_tol, h_tol, z_trunc):
 
 
 def help_bld_aug_2(udh, z0, zt, aug_data, j_tol, h_tol, z_trunc):
+    """
+    Updates augmented data with new values corresponding to the
+    transition from z0 to zt according to the udh function
+    (which generates expected values).
+    """
     z_min, z_max = z_trunc
     lower_z = min(z0, zt)
     higher_z = max(z0, zt)
