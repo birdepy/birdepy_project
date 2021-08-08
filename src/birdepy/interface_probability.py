@@ -248,8 +248,12 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
             sim_method = options['sim_method']
         else:
             sim_method = 'exact'
+        if 'tau' in options.keys():
+            tau = options['tau']
+        else:
+            tau = 0.1
         return probability_sim.probability_sim(z0, zt, t, param, b_rate,
-                                               d_rate, k, sim_method, seed)
+                                               d_rate, k, sim_method, tau, seed)
 
     elif method == 'uniform':
         if 'z_trunc' in options.keys():

@@ -3,7 +3,7 @@ from birdepy import simulate
 from collections import Counter
 
 
-def probability_sim(z0, zt, t, param, b_rate, d_rate, k, sim_method, seed):
+def probability_sim(z0, zt, t, param, b_rate, d_rate, k, sim_method, tau, seed):
     """Transition probabilities for continuous-time birth-and-death processes
     using crude Monte Carlo simulation.
 
@@ -82,7 +82,8 @@ def probability_sim(z0, zt, t, param, b_rate, d_rate, k, sim_method, seed):
             counts = Counter(simulate.discrete(param, 'custom', _z0, [0, t[0]],
                                                b_rate=b_rate, d_rate=d_rate,
                                                k=k, seed=seed,
-                                               method=sim_method)[:, 1])
+                                               method=sim_method,
+                                               tau=tau)[:, 1])
             for idx2, _zt in enumerate(zt):
                 output[idx1, idx2] = counts[_zt]/k
     else:
@@ -93,7 +94,8 @@ def probability_sim(z0, zt, t, param, b_rate, d_rate, k, sim_method, seed):
                                                    [0, _t], b_rate=b_rate,
                                                    d_rate=d_rate, k=k,
                                                    seed=seed,
-                                                   method=sim_method)[:, 1])
+                                                   method=sim_method,
+                                                   tau=tau)[:, 1])
                 for idx2, _zt in enumerate(zt):
                     output[idx3, idx1, idx2] = counts[_zt] / k
     return output
