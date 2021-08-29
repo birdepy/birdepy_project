@@ -8,7 +8,7 @@ def probability_expm(z0, zt, t, param, b_rate, d_rate, z_trunc):
     using the *matrix exponential* method.
 
     To use this function call :func:`birdepy.probability` with `method` set to
-    'expm'::
+    'expm': ::
 
         birdepy.probability(z0, zt, t, param, method='expm', z_trunc=())
 
@@ -26,9 +26,14 @@ def probability_expm(z0, zt, t, param, b_rate, d_rate, z_trunc):
 
     Examples
     --------
-    >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='expm')[0][0]
-    0.0027414224836612463
+    Approximate transition probability for a Verhulst model using a matrix exponential: ::
+
+        import birdepy as bd
+        bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='expm')[0][0]
+
+    Outputs: ::
+
+        0.0027414224836612463
 
     See also
     --------
@@ -45,18 +50,25 @@ def probability_expm(z0, zt, t, param, b_rate, d_rate, z_trunc):
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
+    # Extract the min and max population sizes considered
     z_min, z_max = z_trunc
 
+    # If more than one time is requested it is easiest to divert into a different code block
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         p_mat = expm(np.multiply(q_mat, t))
         output = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
                               np.array(zt - z_min, dtype=np.int32))]
     else:
+        # Initialize an output array to be filled in as we loop over times
         output = np.zeros((t.size, z0.size, zt.size))
+        # Determine the transition rate matrix
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
+            # The transition probabilities follow from taking a matrix exponential
             p_mat = expm(np.multiply(q_mat, t[idx]))
+            # Fill in the output according to requested initial and final states (although many more
+            # probabilities are actually computed)
             output[idx, :, :] = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
                                              np.array(zt - z_min, dtype=np.int32))]
     return output

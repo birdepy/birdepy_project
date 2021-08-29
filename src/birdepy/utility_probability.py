@@ -4,17 +4,19 @@ from scipy.special import binom
 
 
 def beta1(lam, mu, t):
+    """
+    Computes an important part of the transition probability function for a linear
+    birth-and-death process. Corresponds to $\alpha$ defined below Equation (1)
+    in reference [1]. Switches into a high precision mode if an exception is
+    detected using machine precision.
+
+    References
+    ----------
+    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
+    estimation for discretely observed linear birth‐and‐death processes.
+    Biometrics, 77(1), 186-196.
+    """
     if lam == mu:
-        # with np.errstate(divide='raise', over='raise', under='raise',
-        #                  invalid='raise'):
-        #     try:
-        #         output = lam * t / (1 + lam * t)
-        #         if output == 1:
-        #             raise Exception
-        #     except:
-        #         output = mp.fdiv(mp.fmul(lam, t),
-        #                          mp.fadd(1.0, mp.fmul(lam, t)))
-        # return output
         return lam * t / (1 + lam * t)
     else:
         with np.errstate(divide='raise', over='raise', under='raise',
@@ -39,6 +41,18 @@ def beta1(lam, mu, t):
 
 
 def beta2(lam, mu, t):
+    """
+    Computes an important part of the transition probability function for a linear
+    birth-and-death process. Corresponds to $\beta$ defined below Equation (1)
+    in reference [1]. Switches into a high precision mode if an exception is
+    detected using machine precision.
+
+    References
+    ----------
+    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
+    estimation for discretely observed linear birth‐and‐death processes.
+    Biometrics, 77(1), 186-196.
+    """
     if lam == mu:
         return beta1(lam, mu, t)
     else:
@@ -54,6 +68,18 @@ def beta2(lam, mu, t):
 
 
 def p_lin(z0, zt, lam, mu, t):
+    """
+    Computes the transition probability function for a linear
+    birth-and-death process, as given by Equation (2) in reference [1].
+    Switches into a high precision mode if an exception is
+    detected using machine precision.
+
+    References
+    ----------
+    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
+    estimation for discretely observed linear birth‐and‐death processes.
+    Biometrics, 77(1), 186-196.
+    """
     if zt == 0:
         with np.errstate(divide='raise', over='raise', under='raise',
                          invalid='raise'):

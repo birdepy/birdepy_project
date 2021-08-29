@@ -9,8 +9,7 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
     To use this function call ``birdepy.probability`` with `method` set to
     'Erlang'::
 
-        birdepy.probability(z0, zt, t, param, method='Erlang', z_trunc=(), k=150, eps=1e-2,
-                            cut_meth=None)
+        bd.probability(z0, zt, t, param, method='Erlang', z_trunc=(), k=1502)
 
     The parameters associated with this method (listed below) can be
     accessed using kwargs in :func:`birdepy.probability()`. See documentation
@@ -25,14 +24,18 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
         and ``z_max=max(z0, zt) + 100``
 
     k : int, optional
-        Number of terms to include in approximation to probability. If `eps` 
-        is not None, then this is determined dynamically.
+        Number of terms to include in approximation to probability.
 
     Examples
     --------
-    >>> import birdepy as bd
-    ... bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='Erlang')[0][0]
-    0.002731464736623327
+    Approximate transition probability for a Verhulst model using Erlangization: ::
+
+        import birdepy as bd
+        bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='Erlang')[0][0]
+
+    Outputs: ::
+
+        0.002731464736623327
 
     Notes
     -----
@@ -65,22 +68,40 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
 
     """
 
+    # Extract the min and max population sizes considered
     z_min, z_max = z_trunc
 
+    # Count how many states are considered
     num_states = int(z_max - z_min + 1)
 
+    # If more than one time is requested it is easiest to divert into a different code block
     if t.size == 1:
+        # Determine the transition rate matrix
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
+        # Determine the associated 'R' matrix of discrete time transitions at Erlang distributed
+        # epochs
         r_mat = (k / t) * np.linalg.inv((k / t) * np.eye(num_states) - q_mat)
+        # Take k Erlang distributed epochs so the considered time converges to the requested t
+        # with low variance
         p_mat = np.linalg.matrix_power(r_mat, k)
+        # Fill in the output according to requested initial and final states (although many more
+        # probabilities are actually computed)
         output = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
                               np.array(zt - z_min, dtype=np.int32))]
     else:
+        # Initialize an output array to be filled in as we loop over times
         output = np.zeros((t.size, z0.size, zt.size))
+        # Determine the transition rate matrix
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
+            # Determine the associated 'R' matrix of discrete time transitions at Erlang distributed
+            # epochs
             r_mat = (k / t[idx]) * np.linalg.inv((k / t[idx]) * np.eye(num_states) - q_mat)
+            # Take k Erlang distributed epochs so the considered time converges to the requested t
+            # with low variance
             p_mat = np.linalg.matrix_power(r_mat, k)
+            # Fill in the output according to requested initial and final states (although many more
+            # probabilities are actually computed)
             output[idx, :, :] = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
                                              np.array(zt - z_min, dtype=np.int32))]
     return output

@@ -6,13 +6,10 @@ def sq_bld(data, b_rate, d_rate):
     birth-and-death processes using the *Galton-Watson approximation least
     lse estimation* method.
 
-    To use this function call ``birdepy.estimate`` with `method` set to
-    `gwalse`::
+    To use this function call :func:`birdepy.estimate` with `framework` set to
+    'lse' and `squares` set to 'gwa': ::
 
-        birdepy.estimate(t_data, p_data, method='gwalse', model='Verhulst 1',
-                         b_rate=None, d_rate=None, p_size=None, known_p=[],
-                         idx_known_p=[], p0=None, opt_method='L-BFGS-B',
-                         p_bounds=None, con=None, seed=None)
+        bd.estimate(t_data, p_data, p0, p_bounds, framework='lse', squares='gwa')
 
     This function does not have any arguments which are not already described
     by the documentation of ``birdepy.estimate`` (see :ref:`here <Estimation>`)
@@ -29,7 +26,8 @@ def sq_bld(data, b_rate, d_rate):
 
     References
     ----------
-    .. [1]
+    .. [1] Hautphenne, S. and Patch, B. BirDePy: Parameter estimation for
+     population-size-dependent birth-and-death processes in Python. ArXiV, 2021.
 
     .. [2] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.

@@ -34,8 +34,7 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
 
     model : string, optional
         Model specifying birth and death rates of process (see :ref:`here
-        <Birth-and-death Processes
-        >`). Should be one of:
+        <Birth-and-death Processes>`). Should be one of:
 
             - 'Verhulst' (default)
             - 'Ricker'
@@ -87,17 +86,22 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
 
     Examples
     --------
-    >>> for method in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
-    ...     print(method, 'approximation:',
-    ...     bd.probability(19, 27, 1.0, [0.5, 0.3, 0.01, 0.01], model='Verhulst', method=method)[0][0])
-    da approximation: 0.016040426614336103
-    Erlang approximation: 0.0161337966847677
-    expm approximation: 0.016191045449304713
-    gwa approximation: 0.014646030484734228
-    gwasa approximation: 0.014622270048744283
-    ilt approximation: 0.01618465415009876
-    oua approximation: 0.021627234315268227
-    uniform approximation: 0.016191045442910168
+    Approximate transition probability for a Verhulst model using various methods: ::
+
+        for method in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
+            print(method, 'approximation:',
+            bd.probability(19, 27, 1.0, [0.5, 0.3, 0.01, 0.01], model='Verhulst', method=method)[0][0])
+
+    Outputs: ::
+
+        da approximation: 0.016040426614336103
+        Erlang approximation: 0.0161337966847677
+        expm approximation: 0.016191045449304713
+        gwa approximation: 0.014646030484734228
+        gwasa approximation: 0.014622270048744283
+        ilt approximation: 0.01618465415009876
+        oua approximation: 0.021627234315268227
+        uniform approximation: 0.016191045442910168
 
     Notes
     -----
@@ -125,9 +129,13 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
+    # Key word arguments can be passed as a dictionary which is itself the value
+    # of a key word argument with key 'options', in this case the dictionary
+    # must be extracted:
     if 'options' in options.keys():
         options = options['options']
 
+    # Define the model-dependent birth and death rate functions
     if model == 'custom':
         b_rate = options['b_rate']
         d_rate = options['d_rate']
@@ -135,6 +143,7 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         b_rate = ut.higher_birth(model)
         d_rate = ut.higher_death(model)
 
+    # Convert the arguments of 'z0', 'zt' and 't' into numpy arrays
     if np.isscalar(z0):
         z0 = np.array([z0])
     else:
@@ -148,6 +157,11 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
     else:
         t = np.array(t)
 
+    # Each of the methods for approximating transition probabilities are contained in their own
+    # module probability_* where * depends on the method. This control structure determines which
+    # module to use depending on the value of 'method'.  Method specific key word arguments are
+    # extracted from the dictionary 'options' and then used in the module associated with the
+    # method.
     if method == 'da':
         if 'k' in options.keys():
             k = options['k']
@@ -269,7 +283,6 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         return probability_uniform.probability_uniform(z0, zt, t, param, b_rate,
                                                        d_rate, z_trunc, k)
     else:
-        raise TypeError("Specified 'method' for computing "
-                        "probabilities is unknown. Should be one of 'da', "
-                        "'Erlang', 'gwa', 'gwasa', 'ilt', 'expm', 'oua', 'sim', "
-                        "or 'uniform'. ")
+        raise TypeError("Argument of 'method' is unknown, it should be one of "
+                        "'da', 'Erlang', 'gwa', 'gwasa', 'ilt', 'expm', 'oua', "
+                        "'sim', or 'uniform'. ")

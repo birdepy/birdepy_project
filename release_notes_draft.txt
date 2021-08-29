@@ -1,0 +1,5 @@
+1. Provided docstrings for all functions, added more comments throughout codebase, and changed the formatting of examples inside docstrings so that they have a copy button on the website. 
+2. Fixed a bug in bdg.discrete() and bdg.probability() where the default seed was set to 1 instead of chosen randomly. 
+3. Model 'Poisson' is now treated the same as other models. 
+4. Fixed a bug where models with exactly 1 unknown parameter had standard error reported as an array inside of a list instead of as a list. 
+5. Fixed a bug where attempting to compute the carrying capacity for models where this does not exist would throw an exception. Instead a nan is returned for this attribute in the output. 

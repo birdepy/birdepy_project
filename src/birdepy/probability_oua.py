@@ -16,9 +16,14 @@ def probability_oua(z0, zt, t, param, b_rate, d_rate, h_fun, zf_bld):
 
     Examples
     --------
-    >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='oua')[0][0]
-    0.0018882966813798246
+    Approximate transition probability for a Verhulst model using Ornstein--Uhlenbeck approximation: ::
+
+        import birdepy as bd
+        bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='oua')[0][0]
+
+    Outputs: ::
+
+        0.0018882966813798246
 
     Notes
     -----
@@ -57,26 +62,30 @@ def probability_oua(z0, zt, t, param, b_rate, d_rate, h_fun, zf_bld):
     for point in zfs:
         h_vals.append(h_fun(point, param))
 
-    # print('h vals', h_vals)
-
     idx_min_h_val = np.argmin(h_vals)
 
     zf = zfs[idx_min_h_val]
     h = h_vals[idx_min_h_val]
 
+    # If more than one time is requested it is easiest to divert into a different code block
     if t.size == 1:
         output = np.zeros((z0.size, zt.size))
     else:
         output = np.zeros((t.size, z0.size, zt.size))
 
+    # A distribution over all possible final states is determined for each requested initial state
     for idx1, _z0 in enumerate(z0):
+        # Determine the mean of the approximation distribution
         m = zf + np.multiply(np.exp(np.multiply(h, t)), (_z0 - zf))
 
+        # Determine the variance of the approximation distribution
         s2 = np.multiply(
             np.divide(np.add(b_rate(zf, param), d_rate(zf, param)),
                       2 * h),
             np.exp(np.multiply(2 * h, t)) - 1)
 
+        # Given the mean and covariance, use a normal distribution pdf to determine probabilities
+        # for requested terminal states
         for idx2 in range(zt.size):
             if t.size == 1:
                 output[idx1, idx2] = norm.pdf(zt[idx2], loc=m[0],

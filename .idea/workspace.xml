@@ -5,22 +5,41 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9274d6f3-52d9-41e0-a17c-87025bdbe395" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/dist/birdepy-0.0.7.tar.gz" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/birdepy-0.0.6-py3-none-any.whl" beforeDir="false" afterPath="$PROJECT_DIR$/dist/birdepy-0.0.7-py3-none-any.whl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/birdepy-0.0.6.tar.gz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy.egg-info/PKG-INFO" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy.egg-info/PKG-INFO" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_expm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_num.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_num.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/em_Lange.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_Lange.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/em_cg.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_cg.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/em_none.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_none.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/em_qn1.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_qn1.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/em_qn2.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_qn2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_abc.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_abc.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_aug.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_aug.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_em.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_lse.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_lse.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_probability.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_da.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_da.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_expm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_ilt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_oua.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_oua.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/probability_sim.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_sim.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_da.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_erlang.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_expm.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_gwa.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_gwasa.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_ilt.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_oua.tex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/prob_uniform.tex" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/simulate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/simulate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_expm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_fm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_fm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_gwa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_gwa.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/utility_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility_em.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/utility_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility_probability.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,6 +48,14 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
   </component>
   <component name="ProjectId" id="1w1BPArK5U1dRvUdHTWYdyVoxtF" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
@@ -40,6 +67,7 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
@@ -94,6 +122,25 @@
       <workItem from="1628313399697" duration="1214000" />
       <workItem from="1628346731144" duration="3015000" />
       <workItem from="1628437298009" duration="7000" />
+      <workItem from="1628443154239" duration="636000" />
+      <workItem from="1628485049476" duration="3000" />
+      <workItem from="1628689270187" duration="1037000" />
+      <workItem from="1629025961073" duration="597000" />
+      <workItem from="1629191398465" duration="5111000" />
+      <workItem from="1629698979053" duration="7173000" />
+      <workItem from="1629776087283" duration="4931000" />
+      <workItem from="1629785648248" duration="1648000" />
+      <workItem from="1629792743532" duration="597000" />
+      <workItem from="1629797607914" duration="3514000" />
+      <workItem from="1629812650164" duration="949000" />
+      <workItem from="1629814175533" duration="1788000" />
+      <workItem from="1629864647544" duration="14726000" />
+      <workItem from="1629946709172" duration="15304000" />
+      <workItem from="1630041059025" duration="3937000" />
+      <workItem from="1630123249775" duration="13000" />
+      <workItem from="1630123508588" duration="2665000" />
+      <workItem from="1630129181512" duration="3836000" />
+      <workItem from="1630211422007" duration="662000" />
     </task>
     <servers />
   </component>

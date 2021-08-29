@@ -5,6 +5,17 @@ import warnings
 
 
 def bld_ll_fun(data, likelihood, model, z_trunc, options):
+    """
+    Builds a log-likelihood function using the alternative methods for approximating
+    transition probabilities.
+
+    This function is used in :func:`bd.interface_dnm.discrete_est_dnm()` (where
+    it is maximized).
+    """
+    # A different data structure is used depending on the likelihood method.
+    # This is because for some likelihood methods each call of the function 'probability' naturally
+    # generate sets of transition probabilities, while for others only a single transition
+    # probability is generated.
     if likelihood in ['da', 'gwa', 'gwasa', 'ilt', 'oua']:
         def ll_fun(param):
             ll = 0
@@ -52,7 +63,7 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     To use this function call :func:`birdepy.estimate` with `framework` set to
     'dnm'::
 
-        birdepy.estimate(t_data, p_data, p0, p_bounds, framework='dnm', likelihood='expm', z_trunc=())
+        bd.estimate(t_data, p_data, p0, p_bounds, framework='dnm', likelihood='expm', z_trunc=())
 
     The parameters associated with this framework (listed below) can be
     accessed using kwargs in :func:`birdepy.estimate()`. See documentation of
@@ -89,30 +100,33 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     Examples
     --------
     Simulate a sample path and estimate the parameters using the various
-    likelihood approximation methods.
+    likelihood approximation methods: ::
+
+        import birdepy as bd
+        t_data = [t for t in range(100)]
+        p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+                                      survival=True, seed=2021)
+        for likelihood in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
+            likelihood = 'gwasa'
+            est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
+                             framework='dnm', model='Ricker', idx_known_p=[3], known_p=[1],
+                              likelihood=likelihood)
+            print('dnm estimate using', likelihood, 'is', est.p, ', with standard errors',
+                  est.se, 'computed in ', est.compute_time, 'seconds.')
+
+    Outputs: ::
+
+        dnm estimate using da is [0.742967758293063, 0.21582082476775125, 0.022598554340938885] , with standard errors [0.16633436 0.03430501 0.00436483] computed in  12.29400086402893 seconds.
+        dnm estimate using Erlang is [0.7478158070214841, 0.2150341741826537, 0.022748822721356705] , with standard errors [0.16991822 0.0345762  0.00435054] computed in  0.9690003395080566 seconds.
+        dnm estimate using expm is [0.7477255598292176, 0.2150476994316206, 0.022745305129350565] , with standard errors [0.16904095 0.03443197 0.00433563] computed in  1.6919987201690674 seconds.
+        dnm estimate using gwa is [0.6600230500097711, 0.16728663936008945, 0.02512248420514078] , with standard errors [0.14248815 0.02447161 0.00488879] computed in  37.52255415916443 seconds.
+        dnm estimate using gwasa is [0.6604981297820195, 0.16924607541398484, 0.02492054535741541] , with standard errors [0.14244908 0.02485465 0.00488222] computed in  0.8699958324432373 seconds.
+        dnm estimate using ilt is [0.7466254648849691, 0.21415145383850764, 0.022794996238547492] , with standard errors [0.10187377 0.03137803        nan] computed in  1185.0924031734467 seconds.
+        dnm estimate using oua is [0.5000083585920406, 0.5, 0.05] , with standard errors [       nan        nan 0.01961143] computed in  3.466001272201538 seconds.
+        dnm estimate using uniform is [0.7477293759434092, 0.215047068344254, 0.022745437226772615] , with standard errors [0.16900378 0.03443071 0.00433504] computed in  3.275972366333008 seconds.
 
     The constraint ``con={'type': 'ineq', 'fun': lambda p: p[0]-p[1]}`` ensures
     that p[0] > p[1] (i.e., rate of spread greater than recovery rate).
-
-    >>> import birdepy as bd
-    >>> t_data = [t for t in range(100)]
-    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
-    ...                               survival=True, seed=2021)
-    >>> for likelihood in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:
-    ...     likelihood = 'gwasa'
-    >>>     est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[1e-6,1], [1e-6,1], [1e-6, 0.1]],
-    ...                       framework='dnm', model='Ricker', idx_known_p=[3], known_p=[1],
-    ...                       likelihood=likelihood)
-    >>>     print('dnm estimate using', likelihood, 'is', est.p, ', with standard errors',
-    ...           est.se, 'computed in ', est.compute_time, 'seconds.')
-    dnm estimate using da is [0.742967758293063, 0.21582082476775125, 0.022598554340938885] , with standard errors [0.16633436 0.03430501 0.00436483] computed in  12.29400086402893 seconds.
-    dnm estimate using Erlang is [0.7478158070214841, 0.2150341741826537, 0.022748822721356705] , with standard errors [0.16991822 0.0345762  0.00435054] computed in  0.9690003395080566 seconds.
-    dnm estimate using expm is [0.7477255598292176, 0.2150476994316206, 0.022745305129350565] , with standard errors [0.16904095 0.03443197 0.00433563] computed in  1.6919987201690674 seconds.
-    dnm estimate using gwa is [0.6600230500097711, 0.16728663936008945, 0.02512248420514078] , with standard errors [0.14248815 0.02447161 0.00488879] computed in  37.52255415916443 seconds.
-    dnm estimate using gwasa is [0.6604981297820195, 0.16924607541398484, 0.02492054535741541] , with standard errors [0.14244908 0.02485465 0.00488222] computed in  0.8699958324432373 seconds.
-    dnm estimate using ilt is [0.7466254648849691, 0.21415145383850764, 0.022794996238547492] , with standard errors [0.10187377 0.03137803        nan] computed in  1185.0924031734467 seconds.
-    dnm estimate using oua is [0.5000083585920406, 0.5, 0.05] , with standard errors [       nan        nan 0.01961143] computed in  3.466001272201538 seconds.
-    dnm estimate using uniform is [0.7477293759434092, 0.215047068344254, 0.022745437226772615] , with standard errors [0.16900378 0.03443071 0.00433504] computed in  3.275972366333008 seconds.
 
     How well methods perform varies from case to case. In this instance most methods perform well,
     while some throw errors but return useful output regardless, and some fail altogether.
@@ -139,19 +153,24 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     .. [2] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.
     """
-
+    # Build the log-likelihood function assuming all parameters are known
     pre_ll_fun = bld_ll_fun(data, likelihood, model, z_trunc, options)
 
+    # Adjust the log-likelihood function to account for unknown parameters and
+    # negate it so that the minimize function performs maximisation
     def error_fun(p_prop):
         param = ut.p_bld(p_prop, idx_known_p, known_p)
         return -pre_ll_fun(param)
 
+    # The actual log-likelihood is needed to determine the covariance
     def ll(p_prop):
         param = ut.p_bld(p_prop, idx_known_p, known_p)
         return pre_ll_fun(param)
 
+    # Obtain parameter estimates
     opt = ut.minimize_(error_fun, p0, p_bounds, con, opt_method, options)
 
+    # Obtain covariance estimates
     if p0.size > 1:
         try:
             cov = np.linalg.inv(-ut.Hessian(ll, opt.x, p_bounds))
@@ -176,28 +195,31 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     To use this function call :func:`birdepy.estimate` with `scheme` set to
     'continuous'::
 
-        birdepy.estimate(t_data, p_data, p0, p_bounds, scheme='continuous')
+        bd.estimate(t_data, p_data, p0, p_bounds, scheme='continuous')
 
 
     Examples
     --------
     Simulate a continuous sample path and estimate the parameters.
 
-    Import BirDePy:
+    Import BirDePy: ::
 
-    >>> import birdepy as bd
+        import birdepy as bd
 
-    Simulate some synthetic data:
+    Simulate some synthetic data: ::
 
-    >>> t_data, p_data = bd.simulate.continuous([0.75, 0.25, 0.02, 1], 'Ricker', 10,
-    ...                                         100, survival=True, seed=2021)
+        t_data, p_data = bd.simulate.continuous([0.75, 0.25, 0.02, 1], 'Ricker', 10,
+                                                100, survival=True, seed=2021)
 
-    Estimate:
+    Estimate: ::
 
-    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
-    ...                   model='Ricker', idx_known_p=[3], known_p=[1], scheme='continuous')
-    >>> print(est.p)
-    [0.7603171062895576, 0.2514810854871476, 0.020294342655751033]
+        est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+                          model='Ricker', idx_known_p=[3], known_p=[1], scheme='continuous')
+        print(est.p)
+
+    Outputs: ::
+
+        [0.7603171062895576, 0.2514810854871476, 0.020294342655751033]
 
     Notes
     -----
@@ -222,26 +244,35 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
 
     .. [2] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.
-    """
 
+    .. [3] Wolff, R. W. (1965). Problems of statistical inference for birth and
+     death queuing models. Operations Research, 13(3), 343-357.
+    """
+    # Convert data into the format of a list of lists
     if type(t_data[0]) != list:
         t_data = [t_data]
     if type(p_data[0]) != list:
         p_data = [p_data]
 
+    # Create a list containing inter-event (or "holding") times
     holding_times = []
     for idx in range(len(t_data)):
         holding_times.append(np.array(t_data[idx][1:]) -
                              np.array(t_data[idx][0:-1]))
 
+    # Create a list containing population sizes (or states) corresponding to holding_times
     flattened_p_data = [item for sublist in p_data for item in sublist]
 
+    # Create an array of all observed population sizes
     states_visited = np.arange(np.amin(flattened_p_data),
                                np.amax(flattened_p_data) + 1, 1)
+
+    # Create arrays to store holding times and counts of up and down jumps for each population size
     holding_t_data = np.zeros(len(states_visited))
     downward_jump_counts = np.zeros(len(states_visited))
     upward_jump_counts = np.zeros(len(states_visited))
 
+    # Determine holding times and counts of up and down jumps for each population size
     for idx1 in range(len(t_data)):
         state_record_temp = np.array(p_data[idx1])
         holding_times_temp = np.array(holding_times[idx1])
@@ -255,7 +286,7 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
                 np.sum(np.greater(state_record_temp[1:], state_record_temp[0:-1])
                        & (state_record_temp[0:-1] == state))
 
-
+    # Determine the log-likelihood function (e.g., Equation (2) in reference [3])
     def pre_ll(param):
         ll_ = 0
         for idx_, state_ in enumerate(states_visited):
@@ -266,16 +297,21 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
             ll_ -= (b_rate(state_, param) + d_rate(state_, param)) * holding_t_data[idx_]
         return ll_
 
+    # Adjust the log-likelihood function to account for unknown parameters and
+    # negate it so that the minimize function performs maximisation
     def error_fun(p_prop):
         param = ut.p_bld(p_prop, idx_known_p, known_p)
         return -pre_ll(param)
 
+    # The actual log-likelihood is needed to determine the covariance
     def ll(p_prop):
         param = ut.p_bld(p_prop, idx_known_p, known_p)
         return pre_ll(param)
 
+    # Obtain parameter estimates
     opt = ut.minimize_(error_fun, p0, p_bounds, con, opt_method, options)
 
+    # Obtain covariance estimates
     if p0.size > 1:
         try:
             cov = np.linalg.inv(-ut.Hessian(ll, opt.x, p_bounds))

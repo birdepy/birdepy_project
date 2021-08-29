@@ -21,13 +21,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     Parameters
     ----------
-    t_data : array_like
+    t_data : list
         Observation times of birth-and-death process. If one trajectory is
         observed, then this is a list. If multiple trajectories are observed,
         then this is a list of lists where each list corresponds to a
         trajectory.
 
-    p_data : array_like
+    p_data : list
         Observed populations of birth-and-death process at times in argument
         `t_data`. If one trajectory is observed, then this is a list. If
         multiple trajectories are observed, then this is a list of lists
@@ -130,48 +130,54 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     Example 1: Simulate a discretely observed sample path and estimate the parameters using the
     alternative frameworks.
     First simulate some sample paths of a Verhulst 2 (SIS) model using
-    :func:`birdepy.simulate.discrete()`:
+    :func:`birdepy.simulate.discrete()`: ::
 
-    >>> import birdepy as bd
-    >>> t_data = [t for t in range(100)]
-    >>> p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
-    ...                               survival=True, seed=2021)
+        import birdepy as bd
+        t_data = [t for t in range(100)]
+        p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
+                                      survival=True, seed=2021)
 
     Then, using the simulated data, estimate the parameters using 'dnm', 'lse'
-    and 'em' as the argument of `framework`:
+    and 'em' as the argument of `framework`: ::
 
-    >>> est_dnm = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
-    ...                       framework='dnm', model='Ricker', idx_known_p=[3], known_p=[1])
-    >>> est_em = bd.estimate(t_data, p_data, [1, 0.5, 0.05], [[0,1], [0,1], [1e-6,0.1]],
-    ...                       framework='em', model='Ricker', idx_known_p=[3], known_p=[1])
-    >>> est_abc = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
-    ...                       framework='abc', model='Ricker', idx_known_p=[3], known_p=[1])
-    >>> est_lse = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
-    ...                       framework='lse', model='Ricker', idx_known_p=[3], known_p=[1], se_type='simulated')
-    >>> print('abc estimate:', est_abc.p, ', abc standard errors:', est_abc.se)
-    >>> print('dnm estimate:', est_dnm.p, ', dnm standard errors:', est_dnm.se)
-    >>> print('lse estimate:', est_lse.p, ', lse standard errors:', est_lse.se)
-    >>> print('em estimate:', est_em.p, ', em standard errors:', est_em.se)
-    abc estimate: [0.5237212840549004, 0.15633742500248485, 0.04781193037194212] , abc standard errors: [0.26827164 0.13484149 0.02876892]
-    dnm estimate: [0.7477212189824904, 0.2150484536334751, 0.022745124483227304] , dnm standard errors: [0.16904225 0.03443199 0.00433567]
-    em estimate: [0.7375802511179848, 0.19413965548145604, 0.024402343633644553] , em standard errors: [0.15742852 0.02917437 0.00429763]
-    lse estimate: [0.7941741586214265, 0.2767698457541133, 0.01935636627568731] , lse standard errors: [0.1568291  0.19470746 0.01243208]
+        est_dnm = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+                              framework='dnm', model='Ricker', idx_known_p=[3], known_p=[1])
+        est_em = bd.estimate(t_data, p_data, [1, 0.5, 0.05], [[0,1], [0,1], [1e-6,0.1]],
+                              framework='em', model='Ricker', idx_known_p=[3], known_p=[1])
+        est_abc = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+                              framework='abc', model='Ricker', idx_known_p=[3], known_p=[1])
+        est_lse = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+                              framework='lse', model='Ricker', idx_known_p=[3], known_p=[1], se_type='simulated')
+        print('abc estimate:', est_abc.p, ', abc standard errors:', est_abc.se)
+        print('dnm estimate:', est_dnm.p, ', dnm standard errors:', est_dnm.se)
+        print('lse estimate:', est_lse.p, ', lse standard errors:', est_lse.se)
+        print('em estimate:', est_em.p, ', em standard errors:', est_em.se)
+
+    Outputs: ::
+
+        abc estimate: [0.5237212840549004, 0.15633742500248485, 0.04781193037194212] , abc standard errors: [0.26827164 0.13484149 0.02876892]
+        dnm estimate: [0.7477212189824904, 0.2150484536334751, 0.022745124483227304] , dnm standard errors: [0.16904225 0.03443199 0.00433567]
+        em estimate: [0.7375802511179848, 0.19413965548145604, 0.024402343633644553] , em standard errors: [0.15742852 0.02917437 0.00429763]
+        lse estimate: [0.7941741586214265, 0.2767698457541133, 0.01935636627568731] , lse standard errors: [0.1568291  0.19470746 0.01243208]
 
     Alternatively, we may be interested in continuously observed data.
 
     Example 2: Simulate a continuous sample path and estimate the parameters.
 
-    Simulate some synthetic data:
+    Simulate some synthetic data: ::
 
-    >>> t_data, p_data = bd.simulate.continuous([0.75, 0.25, 0.02, 1], 'Ricker', 10,
-    ...                                         100, survival=True, seed=2021)
+        t_data, p_data = bd.simulate.continuous([0.75, 0.25, 0.02, 1], 'Ricker', 10,
+                                                100, survival=True, seed=2021)
 
-    Estimate:
+    Estimate: ::
 
-    >>> est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
-    ...                   model='Ricker', idx_known_p=[3], known_p=[1], scheme='continuous')
-    >>> print(est.p)
-    [0.7603171062895576, 0.2514810854871476, 0.020294342655751033]
+        est = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
+                          model='Ricker', idx_known_p=[3], known_p=[1], scheme='continuous')
+        print(est.p)
+
+    Outputs: ::
+
+        [0.7603171062895576, 0.2514810854871476, 0.020294342655751033]
 
     Notes
     -----
@@ -202,24 +208,30 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
+    # Start a timer so that the total time to run the function can be returned
     tic = time.time()
 
+    # Key word arguments can be passed as a dictionary which is itself the value
+    # of a key word argument with key 'options', in this case the dictionary
+    # must be extracted:
     if 'options' in options.keys():
         options = options['options']
 
+    # Convert the arguments of 'p0', 'known_p' and 'idx_known_p' into numpy arrays
     p0 = np.array(p0)
     known_p = np.array(known_p)
     idx_known_p = np.array(idx_known_p)
 
+    # Augment the options dictionary with items used by the optimization routines later
     options = ut.add_options(options)
 
-    if 'seed' is None:
+    # Set the random number generator
+    if seed is None:
         rng = np.random.default_rng()
     else:
         rng = np.random.default_rng(seed)
 
-    data = ut.data_sort(t_data, p_data)
-
+    # Define the model-dependent birth and death rate functions
     if model == 'custom':
         b_rate = options['b_rate']
         d_rate = options['d_rate']
@@ -227,18 +239,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         b_rate = ut.higher_birth(model)
         d_rate = ut.higher_death(model)
 
-    if model == 'Poisson':
-        warnings.warn("Since argument 'model' is set to 'Poisson', "
-                      "argument 'method' has been overridden and the true "
-                      "dnm will be returned. ",
-                      category=RuntimeWarning)
-        total_count = 0
-        total_time = 0
-        for idx1 in range(len(t_data)):
-            total_count += p_data[idx1][-1] - p_data[idx1][0]
-            total_time += t_data[idx1][-1] - t_data[idx1][0]
-        return total_count / total_time
+    # Create object to return results in
+    class EstimationOutput(OptimizeResult):
+        pass
 
+    # Determine maximum and minimum population sizes (or "truncation" points) of process
     if 'z_trunc' in options.keys():
         z_trunc = options['z_trunc']
     else:
@@ -252,10 +257,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                    int(z_obs_max + 2 * obs_range)]
         options['z_trunc'] = z_trunc
 
-    class EstimationOutput(OptimizeResult):
-        pass
-
+    # Continuously and discretely observed data each have different parameter estimation methods.
+    # This control structure diverts to the continuous observation estimation dnm module for
+    # continuous data or into another control structure that then diverts between the 4
+    # ('abc', 'dnm', 'em' and 'lse) modules for discrete observation parameter estimation.
     if scheme == 'continuous':
+        # Extract scheme specific key word arguments the dictionary 'options'
+        # method.
         if 'opt_method' in options.keys():
             opt_method = options['opt_method']
         else:
@@ -265,9 +273,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             raise TypeError("Argument `framework` must be 'dnm' when "
                             "argument `scheme` is 'continuous'.")
 
+        # Obtain estimate and associated covariance matrix
         opt, cov = continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate,
                                       p_bounds, con, known_p, idx_known_p,
                                       opt_method, options)
+
+        # Prepare items for output
         p_est = opt.x
         message = opt.message
         success = opt.success
@@ -278,6 +289,15 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         method = 'mle'
 
     elif scheme == 'discrete':
+
+        # Sort the data into a more efficient format
+        data = ut.data_sort(t_data, p_data)
+
+        # Each of the frameworks for obtaining parameter estimates are contained in their own
+        # module interface_* where * depends on the framework. This control structure determines
+        # which module to use depending on the value of 'framework'.  Framework specific key word
+        # arguments are extracted from the dictionary 'options' and then used in the module
+        # associated with the framework.
         if framework == 'abc':
             sorted_data = ut.data_sort_2(data)
             if 'eps0' in options.keys():
@@ -320,12 +340,23 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             else:
                 c = 2
                 options['c'] = c
-
+            if 'gpu' in options.keys():
+                gpu = options['gpu']
+            else:
+                gpu = False
+                options['gpu'] = gpu
+            if 'm' in options.keys():
+                m = options['m']
+            else:
+                m = 1
+                options['m'] = m
+            # Obtain estimate, associated covariance matrix, and accepted samples
             pre_p_est, cov, samples = \
-                discrete_est_abc(sorted_data, eps0, distance, stat,
-                                 k, its, c, method, b_rate, d_rate, idx_known_p,
-                                 known_p, p_bounds, con, tau, rng, display)
+                discrete_est_abc(sorted_data, eps0, distance, stat, k, m, its, c, method,
+                                 b_rate, d_rate, idx_known_p, known_p, p_bounds, con, tau,
+                                 rng, display)
 
+            # Prepare items for output
             if its > 1:
                 p_est = pre_p_est[-1]
             else:
@@ -350,9 +381,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                     opt_method = 'SLSQP'
                 options['opt_method'] = opt_method
 
+            # Obtain estimate and associated covariance matrix
             opt, cov = discrete_est_dnm(data, likelihood, model,
                                         z_trunc, idx_known_p, known_p, p0,
                                         p_bounds, con, opt_method, options)
+
+            # Prepare items for output
             p_est = opt.x
             message = opt.message
             success = opt.success
@@ -413,11 +447,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
                 return aug_data
 
+            # Obtain estimate, associated covariance matrix and per-iteration estimates
             p_est, cov, ll, iterations = discrete_est_em(
                 data, p0, technique, accelerator, likelihood, p_bounds, con,
                 known_p, idx_known_p, model, b_rate, d_rate, z_trunc, max_it,
                 i_tol, j_tol, h_tol, display, opt_method, options)
 
+            # Prepare items for output
             message = 'Not applicable for `em`.'
             success = 'Not applicable for `em`.'
             err = ll
@@ -436,10 +472,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 squares = 'fm'
                 options['squares'] = squares
 
+            # Obtain estimate
             opt = discrete_est_lse(data, squares, model, b_rate, d_rate, z_trunc,
                                    idx_known_p, known_p, p0, p_bounds,
                                    con, opt_method, options)
 
+            # Prepare items for output
             p_est = opt.x
             message = opt.message
             success = opt.success
@@ -451,11 +489,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
         else:
             raise ValueError("Argument `framework` has an unknown value. Should "
-                             "be one of: 'dnm', 'lse', 'em'.")
+                             "be one of: 'abc', 'dnm', 'lse', or 'em'.")
     else:
         raise ValueError("Argument `scheme` has an unknown value. Should "
                          "be one of: 'discrete' or 'continuous'.")
 
+    # Prepare for plotting
     if 'xlabel' in options.keys():
         xlabel = options['xlabel']
     else:
@@ -465,7 +504,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     else:
         ylabel = "$\\theta_2$"
 
-    # Compute confidence regions and standard errors
+    # Compute confidence regions and standard errors, and plot confidence regions.
+    # This control structure diverts between the 'asymptotic' and 'simulated'
+    # approaches to doing these tasks.
     if se_type == 'asymptotic':
         if framework == 'lse':
             se = "Asymptotic confidence intervals are not available for " \
@@ -474,7 +515,10 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         else:
             # For frameworks 'abc', 'dnm' and 'em', use cov value computed above
             try:
-                se = np.sqrt(np.diag(cov))
+                if cov.shape[0] == 1:
+                    se = list(np.sqrt(np.diag(cov))[0])
+                else:
+                    se = list(np.sqrt(np.diag(cov)))
             except:
                 se = 'Error computing standard errors. Covariance matrix may have' \
                      'negative diagonal entries.'
@@ -487,8 +531,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         else:
             num_samples = 100
 
+        # Augment estimate of unknown parameters with known parameters
         param = ut.p_bld(p_est, idx_known_p, known_p)
 
+        # This section generates synthetic data samples according to the estimate and then
+        # performs the estimation using the synthetic data to obtain a collection of estimates.
+        # The control structures are mostly to ensure the correct estimation procedure is used on
+        # the synthetic data.
         bootstrap_samples = np.zeros((num_samples, p0.size))
         for idx in range(num_samples):
             if scheme == 'continuous':
@@ -542,7 +591,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                       100 * (idx + 1) / num_samples, '%')
             cov = np.cov(bootstrap_samples, rowvar=False)
         try:
-            se = np.sqrt(np.diag(cov))
+            # This control structure ensures standard errors are returned in the correct format
+            if cov.shape[0] == 1:
+                se = list(np.sqrt(np.diag(cov))[0])
+            else:
+                se = list(np.sqrt(np.diag(cov)))
         except:
             se = 'Error computing standard errors. Covariance matrix may have ' \
                  'negative diagonal entries.'
@@ -562,16 +615,19 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         raise TypeError("Argument `se_type` has an unknown value. Possible "
                         "options are 'none', 'asymptotic' and 'simulated' ")
 
-    
+    # Determine capacity attribute of the output
     if model != 'custom':
+        # Build a function that returns fixed points of fluid model
         capacity_finder = ut.higher_zf_bld(model)
+        # Use function to find fixed points in terms of estimate of unknown parameters augmented
+        # with known parameters
         capacity = capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p))
     else:
         capacity = "Functionality not available for custom models."
 
     return EstimationOutput(p=list(p_est), capacity=capacity, val=err, cov=cov,
-                            se=list(se), compute_time=time.time() - tic,
+                            se=se, compute_time=time.time() - tic,
                             framework=framework, message=message,
                             success=success, iterations=iterations,
                             method=method, p0=list(p0),
-                            scheme=scheme, samples=samples)
+                            scheme=scheme, samples=samples, model=model)

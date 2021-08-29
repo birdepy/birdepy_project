@@ -13,8 +13,19 @@ def aug_bld_ilt(sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
     that returns the expected values of the number of up jumps from a
     state z, the number of down jumps from z, and the time spent in z
     when the process transitions from z0 to zt in elapsed time t.
+
+    This function is called by :func:`bd.interface_aug.f_fun_bld()`.
     """
     def udh(z0, zt, t, z):
+        """
+        Computes the expected values defined by Equation (14) in
+        reference [1] using numerical Laplace inversion.
+
+        [1] Crawford, F. W., Minin, V. N., & Suchard, M. A. (2014).
+        Estimation for general birth-death processes. Journal of
+        the American Statistical Association, 109(506), 730-747.
+
+        """
         pr = probability(z0, zt, t, param, model, likelihood, z_trunc=z_trunc,
                          options=options)[0][0]
 

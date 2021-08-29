@@ -5,6 +5,17 @@ import warnings
 
 
 def w_fun(lam, mu, _z0, _zt, t):
+    """
+    Computes an important part of the saddlepoint approximation for a linear
+    linear-and-death process. Corresponds to $\tilde s = (2A)^{-1}(-B+\sqrt{B^2-4AC})$
+    in Lemma 1 of reference [1].
+
+    References
+    ----------
+    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
+    estimation for discretely observed linear birth‐and‐death processes.
+    Biometrics, 77(1), 186-196.
+    """
     if lam == mu:
         a = lam * t - (lam * t) ** 2
         b = 2 * (lam * t) ** 2 + _z0 / _zt - 1
@@ -29,6 +40,17 @@ def w_fun(lam, mu, _z0, _zt, t):
 
 
 def w_fun_high_precision(lam, mu, _z0, _zt, t):
+    """
+    Computes an important part of the saddlepoint approximation for a linear
+    linear-and-death process in high precision. Corresponds to
+    $\tilde s = (2A)^{-1}(-B+\sqrt{B^2-4AC})$ in Lemma 1 of reference [1].
+
+    References
+    ----------
+    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
+    estimation for discretely observed linear birth‐and‐death processes.
+    Biometrics, 77(1), 186-196.
+    """
     if lam == mu:
         a = mp.fsub(mp.fmul(lam, t),
                     mp.power(mp.fmul(lam, t), 2))
@@ -107,14 +129,20 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
     ----------
     anchor : string, optional
         Determines which state z is used to determine the linear approximation.
-        Should be one of: 'initial' (z0 is used), 'midpoint' (default, 0.5*(z0+zt) is used)
-        or 'terminal' (zt is used).
+        Should be one of: 'initial' (z0 is used), 'midpoint' (default, 0.5*(z0+zt) is used),
+        'terminal' (zt is used), 'max' (max(z0, zt) is used), or 'min' (min(z0, zt) is used).
 
     Examples
     --------
-    >>> import birdepy as bd
-    >>> bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='gwasa')[0][0]
-    0.002271944691896704
+    Approximate transition probability for a Verhulst model using the saddlepoint approximation
+    to a linear approximation: ::
+
+        import birdepy as bd
+        bd.probability(19, 27, 1.0, [0.5, 0.3, 0.02, 0.01], model='Verhulst', method='gwasa')[0][0]
+
+    Outputs: ::
+
+        0.002271944691896704
 
     Notes
     -----
@@ -139,8 +167,10 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
-
+    # This function computes a transition probability for a specific initial state, terminal state
+    # and time combination. Later we will use it in a loop.
     def prob(_z0, _zt, _t):
+        # Set the rates of the linear approximation according the argument of 'anchor'
         if anchor == 'midpoint':
             midpoint = 0.5*(_z0+_zt)
             lam = b_rate(midpoint, param) / midpoint
@@ -151,22 +181,36 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
         elif anchor == 'terminal':
             lam = b_rate(_zt, param) / _zt
             mu = d_rate(_zt, param) / _zt
+        elif anchor == 'max':
+            max_z = max(_z0, _zt)
+            lam = b_rate(max_z, param) / max_z
+            mu = d_rate(max_z, param) / max_z
+        elif anchor == 'min':
+            min_z = min(_z0, _zt)
+            lam = b_rate(min_z, param) / min_z
+            mu = d_rate(min_z, param) / min_z
         else:
             raise TypeError("Argument 'anchor' has an unknown value. Should be one of 'midpoint'"
-                            " 'initial' or 'terminal'.")
+                            " 'initial', 'terminal', 'max' or 'min'.")
+        # Linear birth-and-death processes never evolve away from 0
         if _z0 == 0 and _zt > 0:
             raise TypeError("Methods 'gwa' and 'gwasa' are not suitable for "
                             "datasets that include transitions away "
                             "from the origin (i.e., z_{i-1}=0 and "
                             "z_i>0). ")
+        # Linear birth-and-death processes always stay at 0
         if _z0 == 0 and _zt == 0:
             pr = 1
-        elif _zt == 0:
+        elif _zt == 0:  # Transitioning to 0 is a special case
             pr = mp.fmul(_z0, np.log(max(1e-100, ut.beta1(lam, mu, _t))))
-        elif _zt == 1:
+        elif _zt == 1:  # Transitioning to 1 is a special case
             pr = ut.p_lin(_z0, 1, b_rate(_z0, param) / _z0,
                           d_rate(_z0, param) / _z0, _t)
         else:
+            # We attempt to compute required quantities with machine precision. If an error is
+            # encountered we divert to high precision computations (which take longer).
+            # The computations performed here are described in detail in Section 2.3 of
+            # reference [1]
             with np.errstate(divide='raise', over='raise', under='raise',
                              invalid='raise'):
                 try:
@@ -286,6 +330,7 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
                                                mp.power(w, _zt))),
                                    mp.power(mp.fdiv(p1, p2), _z0),
                                    mp.power(mp.fdiv(p3, p4), -0.5)))
+        # Return a float (not a high precision mpmath object)
         if type(pr) != float:
             pr = float(mp.re(pr))
 
@@ -302,12 +347,16 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
 
         return pr
 
+    # If more than one time is requested it is easiest to divert into a different code block
     if t.size == 1:
+        # Initialize an output array to be filled in as we loop over initial and terminal states
         output = np.zeros((z0.size, zt.size))
         for idx1, _z0 in enumerate(z0):
             for idx2, _zt in enumerate(zt):
                 output[idx1, idx2] = prob(_z0, _zt, t[0])
     else:
+        # Initialize an output array to be filled in as we loop over times, initial and terminal
+        # states
         output = np.zeros((t.size, z0.size, zt.size))
         for idx1, _z0 in enumerate(z0):
             for idx2, _zt in enumerate(zt):
