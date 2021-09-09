@@ -4,42 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9274d6f3-52d9-41e0-a17c-87025bdbe395" name="Default Changelist" comment="">
+    <list default="true" id="459912ee-653e-4eda-8ba4-77cd5d849e5d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_expm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_ilt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/aug_num.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/aug_num.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/em_Lange.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_Lange.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/em_cg.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_cg.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/em_none.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_none.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/em_qn1.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_qn1.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/em_qn2.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/em_qn2.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_abc.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_abc.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_aug.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_aug.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_em.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_lse.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_lse.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/interface_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_probability.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_Erlang.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_da.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_da.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_expm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_gwasa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_ilt.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_ilt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_oua.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_oua.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_sim.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_sim.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/probability_uniform.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/birdepy/simulate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/simulate.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_expm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_expm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_fm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_fm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/squares_gwa.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/squares_gwa.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/utility_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility_em.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/utility_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility_probability.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,15 +21,7 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitSEFilterConfiguration">
-    <file-type-list>
-      <filtered-out-file-type name="LOCAL_BRANCH" />
-      <filtered-out-file-type name="REMOTE_BRANCH" />
-      <filtered-out-file-type name="TAG" />
-      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
-    </file-type-list>
-  </component>
-  <component name="ProjectId" id="1w1BPArK5U1dRvUdHTWYdyVoxtF" />
+  <component name="ProjectId" id="1xt2C8MUJ6BK41DdZevqw6qTMxH" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -67,7 +31,6 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
@@ -100,47 +63,12 @@
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="9274d6f3-52d9-41e0-a17c-87025bdbe395" name="Default Changelist" comment="" />
-      <created>1627616187983</created>
+      <changelist id="459912ee-653e-4eda-8ba4-77cd5d849e5d" name="Changes" comment="" />
+      <created>1631159936324</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1627616187983</updated>
-      <workItem from="1627616200259" duration="7179000" />
-      <workItem from="1627658407508" duration="211000" />
-      <workItem from="1627820947879" duration="94000" />
-      <workItem from="1627821104014" duration="1144000" />
-      <workItem from="1627867876598" duration="5486000" />
-      <workItem from="1627900420819" duration="707000" />
-      <workItem from="1627987421264" duration="2831000" />
-      <workItem from="1628073258888" duration="2525000" />
-      <workItem from="1628088814978" duration="2780000" />
-      <workItem from="1628146046363" duration="597000" />
-      <workItem from="1628163504431" duration="26000" />
-      <workItem from="1628164793413" duration="25000" />
-      <workItem from="1628165887460" duration="13863000" />
-      <workItem from="1628221077731" duration="7661000" />
-      <workItem from="1628313399697" duration="1214000" />
-      <workItem from="1628346731144" duration="3015000" />
-      <workItem from="1628437298009" duration="7000" />
-      <workItem from="1628443154239" duration="636000" />
-      <workItem from="1628485049476" duration="3000" />
-      <workItem from="1628689270187" duration="1037000" />
-      <workItem from="1629025961073" duration="597000" />
-      <workItem from="1629191398465" duration="5111000" />
-      <workItem from="1629698979053" duration="7173000" />
-      <workItem from="1629776087283" duration="4931000" />
-      <workItem from="1629785648248" duration="1648000" />
-      <workItem from="1629792743532" duration="597000" />
-      <workItem from="1629797607914" duration="3514000" />
-      <workItem from="1629812650164" duration="949000" />
-      <workItem from="1629814175533" duration="1788000" />
-      <workItem from="1629864647544" duration="14726000" />
-      <workItem from="1629946709172" duration="15304000" />
-      <workItem from="1630041059025" duration="3937000" />
-      <workItem from="1630123249775" duration="13000" />
-      <workItem from="1630123508588" duration="2665000" />
-      <workItem from="1630129181512" duration="3836000" />
-      <workItem from="1630211422007" duration="662000" />
+      <updated>1631159936324</updated>
+      <workItem from="1631159942380" duration="902000" />
     </task>
     <servers />
   </component>

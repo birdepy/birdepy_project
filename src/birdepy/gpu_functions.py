@@ -19,6 +19,8 @@ def discrete(param, model, z0, t, k=1, survival=False, seed=None):
         process to be simulated.
         Array of real elements of size (m,), where ‘m’ is the number of
         parameters.
+        These must be in the order given :ref:`here
+        <Birth-and-death Processes>`).
 
     model : string
         Model specifying birth and death rates of process (see :ref:`here
@@ -183,6 +185,8 @@ def probability(z0, zt, t, param, model, k=10**6, seed=None):
         process.
         Array of real elements of size (n,), where ‘n’ is the number of
         parameters.
+        These must be in the order given :ref:`here
+        <Birth-and-death Processes>`).
 
     model : string, optional
         Model specifying birth and death rates of process (see :ref:`here

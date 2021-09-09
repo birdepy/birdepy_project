@@ -31,6 +31,8 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         process.
         Array of real elements of size (n,), where ‘n’ is the number of
         parameters.
+        These must be in the order given :ref:`here
+        <Birth-and-death Processes>`).
 
     model : string, optional
         Model specifying birth and death rates of process (see :ref:`here

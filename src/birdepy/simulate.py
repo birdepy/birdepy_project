@@ -14,6 +14,8 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
         process to be simulated.
         Array of real elements of size (m,), where ‘m’ is the number of
         parameters.
+        These must be in the order given :ref:`here
+        <Birth-and-death Processes>`).
 
     model : string
         Model specifying birth and death rates of process (see :ref:`here
@@ -394,6 +396,9 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
         process to be simulated.
         Array of real elements of size (n,), where ‘n’ is the number of
         param.
+        These must be in the order given :ref:`here
+        <Birth-and-death Processes>`).
+
 
     model : string
         Model specifying birth and death rates of process (see :ref:`here
