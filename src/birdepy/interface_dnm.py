@@ -90,7 +90,7 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
 
     z_trunc : array_like, optional
         Truncation thresholds, i.e., minimum and maximum states of process
-        considered. Array of real elements of size (2,) by default
+        considered. Array of real elements of size (2,) by default\
         ``z_trunc=[z_min, z_max]`` where
         ``z_min=max(0, min(p_data) - 2*z_range)``
         and ``z_max=max(p_data) + 2*z_range`` where
@@ -103,7 +103,7 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     likelihood approximation methods: ::
 
         import birdepy as bd
-        t_data = [t for t in range(100)]
+        t_data = list(range(100))
         p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
                                       survival=True, seed=2021)
         for likelihood in ['da', 'Erlang', 'expm', 'gwa', 'gwasa', 'ilt', 'oua', 'uniform']:

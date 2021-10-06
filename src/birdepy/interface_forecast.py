@@ -226,7 +226,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     First simulate some sample paths using : :`birdepy.simulate.discrete()`: ::
 
         import birdepy as bd
-        t_data = [t for t in range(101)]
+        t_data = list(range(101))
         p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
                                       survival=True, seed=2021)
 
@@ -237,7 +237,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
 
     Then, use the estimated parameters and covariances to generate a forecast: ::
 
-        future_t = [t for t in range(101,151,1)]
+        future_t = list(range(101,151,1))
         bd.forecast('Ricker', p_data[-1], future_t, est.p, cov=est.cov,
                     p_bounds=[[0,1], [0,1], [0, 0.1]], idx_known_p=[3], known_p=[1],
                     interval='prediction')

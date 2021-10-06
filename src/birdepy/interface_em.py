@@ -109,7 +109,7 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     model: ::
 
         import birdepy as bd
-        t_data = [t for t in range(100)]
+        t_data = list(range(100))
         p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
                                       survival=True, seed=2021)
 
