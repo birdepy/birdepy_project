@@ -156,7 +156,10 @@ def data_sort_2(data):
     """
     Further sorts output of :func:`birdepy._utility.data_sort`. Separates data
     into sub-collections where all transitions in any given sub-collection
-    occur in the same elapsed time (rounded to 8 decimal places).
+    occur in the same elapsed time (rounded to 8 decimal places). This is useful
+    when computing transition probabilities using methods that compute all
+    transition probabilities simultaneously for a specified time (e.g., the
+    matrix exponential method).
 
     Parameters
     ----------

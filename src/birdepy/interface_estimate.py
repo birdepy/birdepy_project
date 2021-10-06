@@ -129,11 +129,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     --------
     Example 1: Simulate a discretely observed sample path and estimate the parameters using the
     alternative frameworks.
-    First simulate some sample paths of a Verhulst 2 (SIS) model using
+    First simulate some sample paths of a Ricker model using
     :func:`birdepy.simulate.discrete()`: ::
 
         import birdepy as bd
-        t_data = [t for t in range(100)]
+        t_data = list(range(100))
         p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
                                       survival=True, seed=2021)
 
@@ -148,16 +148,16 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                               framework='abc', model='Ricker', idx_known_p=[3], known_p=[1])
         est_lse = bd.estimate(t_data, p_data, [0.5, 0.5, 0.05], [[0,1], [0,1], [0, 0.1]],
                               framework='lse', model='Ricker', idx_known_p=[3], known_p=[1], se_type='simulated')
-        print('abc estimate:', est_abc.p, ', abc standard errors:', est_abc.se)
-        print('dnm estimate:', est_dnm.p, ', dnm standard errors:', est_dnm.se)
-        print('lse estimate:', est_lse.p, ', lse standard errors:', est_lse.se)
-        print('em estimate:', est_em.p, ', em standard errors:', est_em.se)
+        print(f'dnm estimate: {est_dnm.p}, dnm standard errors: {est_dnm.se}')
+        print(f'lse estimate: {est_lse.p}, lse standard errors: {est_lse.se}')
+        print(f'abc estimate: {est_abc.p}, abc standard errors: {est_abc.se}')
+        print(f'em estimate: {est_em.p}, em standard errors: {est_em.se}')
 
     Outputs: ::
 
-        abc estimate: [0.5237212840549004, 0.15633742500248485, 0.04781193037194212] , abc standard errors: [0.26827164 0.13484149 0.02876892]
         dnm estimate: [0.7477212189824904, 0.2150484536334751, 0.022745124483227304] , dnm standard errors: [0.16904225 0.03443199 0.00433567]
         em estimate: [0.7375802511179848, 0.19413965548145604, 0.024402343633644553] , em standard errors: [0.15742852 0.02917437 0.00429763]
+        abc estimate: [0.6318632898413052, 0.02074882329749562, 0.06580340596326038], abc standard errors: [0.22865334, 0.0148124, 0.0129306]
         lse estimate: [0.7941741586214265, 0.2767698457541133, 0.01935636627568731] , lse standard errors: [0.1568291  0.19470746 0.01243208]
 
     Alternatively, we may be interested in continuously observed data.
@@ -299,22 +299,34 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         # arguments are extracted from the dictionary 'options' and then used in the module
         # associated with the framework.
         if framework == 'abc':
-            sorted_data = ut.data_sort_2(data)
-            if 'eps0' in options.keys():
-                eps0 = options['eps0']
-            else:
-                eps0 = 10
-                options['eps0'] = eps0
             if 'k' in options.keys():
                 k = options['k']
             else:
                 k = 100
                 options['k'] = k
-            if 'its' in options.keys():
-                its = options['its']
+            if 'eps_abc' in options.keys():
+                eps_abc = options['eps_abc']
+                if np.isscalar(eps_abc):
+                    eps_abc = [eps_abc]
             else:
-                its = 2
-                options['its'] = its
+                eps_abc = 'dynamic'
+                options['eps_abc'] = eps_abc
+            if 'max_its' in options.keys():
+                max_its = options['max_its']
+            else:
+                if eps_abc == 'dynamic':
+                    max_its = 3
+                else:
+                    max_its = len(eps_abc)
+                options['max_its'] = max_its
+            if max_its != len(eps_abc) and eps_abc != 'dynamic':
+                raise ValueError("Length of argument `abc_eps` "
+                                 "does not match argument `its`.")
+            if 'max_q' in options.keys():
+                max_q = options['max_q']
+            else:
+                max_q = 0.99
+                options['max_q'] = max_q
             if 'method' in options.keys():
                 method = options['method']
             else:
@@ -323,7 +335,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             if 'tau' in options.keys():
                 tau = options['tau']
             else:
-                tau = min(min(sorted_data.keys()) / 10, 0.1)
+                tau = np.inf
+                for i in data:
+                    if i[2] < tau:
+                        tau = i[2]
+                tau = min(tau/10, 0.1)
                 options['tau'] = tau
             if 'distance' in options.keys():
                 distance = options['distance']
@@ -333,34 +349,27 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             if 'stat' in options.keys():
                 stat = options['stat']
             else:
-                stat = 'median'
-                options['stat'] = distance
-            if 'c' in options.keys():
-                c = options['c']
+                stat = 'mean'
+                options['stat'] = stat
+            if stat not in ['mean', 'median']:
+                raise TypeError("Argument of 'stat' has an unknown value.")
+            if 'gam' in options.keys():
+                gam = options['gam']
             else:
-                c = 2
-                options['c'] = c
-            if 'gpu' in options.keys():
-                gpu = options['gpu']
+                gam = 5
+                options['gam'] = gam
+            if 'eps_change' in options.keys():
+                eps_change = options['eps_change']
             else:
-                gpu = False
-                options['gpu'] = gpu
-            if 'm' in options.keys():
-                m = options['m']
-            else:
-                m = 1
-                options['m'] = m
+                eps_change = 5
+                options['eps_change'] = eps_change
             # Obtain estimate, associated covariance matrix, and accepted samples
-            pre_p_est, cov, samples = \
-                discrete_est_abc(sorted_data, eps0, distance, stat, k, m, its, c, method,
-                                 b_rate, d_rate, idx_known_p, known_p, p_bounds, con, tau,
-                                 rng, display)
+            p_est, cov, samples = \
+                discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its,
+                                 max_q, eps_change, method, b_rate, d_rate,
+                                 idx_known_p, known_p, p_bounds, con, tau, rng,
+                                 display)
 
-            # Prepare items for output
-            if its > 1:
-                p_est = pre_p_est[-1]
-            else:
-                p_est = pre_p_est
             message = 'Not applicable for `abc`.'
             success = 'Not applicable for `abc`.'
             iterations = 'Not applicable for `abc`. '

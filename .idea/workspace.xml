@@ -4,14 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="459912ee-653e-4eda-8ba4-77cd5d849e5d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+    <list default="true" id="56de9cdb-3ba7-4c2c-872f-c613d4565014" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/birdepy_project.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/birdepy_project.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/other.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/other.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/gpu_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_probability.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_probability.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/birdepy/simulate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/simulate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_abc.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_abc.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_dnm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_em.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_em.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_estimate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_forecast.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/interface_lse.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/interface_lse.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/birdepy/utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/birdepy/utility.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,7 +26,15 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectId" id="1xt2C8MUJ6BK41DdZevqw6qTMxH" />
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="ProjectId" id="1z1hURYPoq9izEY9ExFdj6UCidH" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -30,49 +43,43 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File" value="Python" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
-  </component>
-  <component name="RunManager">
-    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
-      <module name="birdepy_project" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
+    <property name="settings.editor.selected.configurable" value="preferences.sourceCode.Python" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="459912ee-653e-4eda-8ba4-77cd5d849e5d" name="Changes" comment="" />
-      <created>1631159936324</created>
+      <changelist id="56de9cdb-3ba7-4c2c-872f-c613d4565014" name="Changes" comment="" />
+      <created>1633321516336</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1631159936324</updated>
-      <workItem from="1631159942380" duration="902000" />
+      <updated>1633321516336</updated>
+      <workItem from="1633321522561" duration="8996000" />
+      <workItem from="1633333908055" duration="938000" />
+      <workItem from="1633410627049" duration="12185000" />
+      <workItem from="1633486082198" duration="8508000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
 </project>

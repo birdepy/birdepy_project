@@ -45,7 +45,7 @@ def discrete_est_lse(data, squares, model, b_rate, d_rate, z_trunc,
     likelihood approximation methods: ::
 
         import birdepy as bd
-        t_data = [t for t in range(100)]
+        t_data = list(range(100))
         p_data = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, t_data,
                                       survival=True, seed=2021)
         for squares in ['expm', 'fm', 'gwa']:
