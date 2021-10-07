@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: birdepy
-Version: 0.0.7
+Version: 0.0.9
 Summary: Parameter estimation for birth-and-death processes
 Home-page: https://birdepy.github.io
 Author: Sophie Hautphenne and Brendan Patch
@@ -10,7 +10,7 @@ Project-URL: Bug Reports, https://github.com/birdepy/birdepy_project/issues
 Project-URL: Source, https://github.com/birdepy/birdepy_project
 Keywords: Markov chain,stochastic,population process
 Platform: UNKNOWN
-Classifier: Development Status :: 3 - Alpha
+Classifier: Development Status :: 4 - Beta
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
@@ -22,8 +22,8 @@ License-File: LICENSE
 
 # BirDePy: Birth-and-death processes in Python
 
-Please visit our website: https://birdepy.github.io/
-
 BirDePy is a Python package for working with continuous time birth-and-death processes. It includes functions which can be used to approximate transition probabilities (``birdepy.probability()``), estimate parameter values from data (``birdepy.estimate()``), simulate sample paths (``birdepy.simulate.discrete()`` and ``birdepy.simulate.continuous()``) and generate forecasts (``birdepy.forecast()``). The main focus of the package is the estimation of parameter values from discretely-observed sample paths, however the much more straightforward case of estimation of parameter values from continuously observed sample paths is also included.
+
+Please visit our website: https://birdepy.github.io/
 
 
