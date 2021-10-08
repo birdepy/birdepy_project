@@ -630,7 +630,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         capacity_finder = ut.higher_zf_bld(model)
         # Use function to find fixed points in terms of estimate of unknown parameters augmented
         # with known parameters
-        capacity = int(capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p)))
+        capacity = np.ceil(capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p)))
     else:
         capacity = "Functionality not available for custom models."
 
