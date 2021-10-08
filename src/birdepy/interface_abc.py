@@ -193,11 +193,7 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
 
     stat : string, optional
         Determines which statistic is used to summarize the posterior distribution.
-        Should be one of: 'mean' or 'median'.
-
-    c : int, optional
-        Number of mixture components in the mixed multivariate normal which is
-        used as a posterior distribution when updating epsilon over iterations.
+        Should be one of: 'mean' or 'median'. 
 
     Examples
     --------
