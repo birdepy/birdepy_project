@@ -495,8 +495,8 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
 
     References
     ----------
-    .. [1] Hautphenne, S. and Patch, B. BirDePy: Parameter estimation for
-     population-size-dependent birth-and-death processes in Python. ArXiV, 2021.
+    .. [1] Hautphenne, S., & Patch, B. (2021). Birth-and-death Processes in Python:
+     The BirDePy Package. arXiv preprint arXiv:2110.05067.
 
     .. [2] Kroese, D.P., Taimre, T. and Botev, Z.I. (2013) Handbook of Monte
      Carlo methods. John Wiley & Sons.
