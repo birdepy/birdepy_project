@@ -147,8 +147,8 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
 
     References
     ----------
-    .. [1] Hautphenne, S. and Patch, B. BirDePy: Parameter estimation for
-     population-size-dependent birth-and-death processes in Python. ArXiV, 2021.
+    .. [1] Hautphenne, S., & Patch, B. (2021). Birth-and-death Processes in Python:
+     The BirDePy Package. arXiv preprint arXiv:2110.05067.
 
     .. [2] Feller, W. (1968) An introduction to probability theory and its
      applications (Volume 1) 3rd ed. John Wiley & Sons.
