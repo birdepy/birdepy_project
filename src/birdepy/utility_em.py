@@ -46,7 +46,7 @@ def line_search_ll(direction, data, p0, likelihood, known_p,
         param = ut.p_bld(p_prop, idx_known_p, known_p)
         return -ll(param)
 
-    a_opt = ut.minimize_(error_fun, 1e-6, [], new_con, opt_method, options).x
+    a_opt = ut.minimize_(error_fun, 1e-6, None, new_con, opt_method, options).x
 
     return a_opt
 
