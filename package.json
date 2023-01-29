@@ -1,0 +1,18 @@
+{
+  "name": "birdepy_project",
+  "version": "0.0.0-semantically-released",
+  "description": "BirDePy is a Python package for working with continuous time birth-and-death processes.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/birdepy/birdepy_project.git"
+  },
+  "license": "GPLv3",
+  "bugs": {
+    "url": "https://github.com/birdepy/birdepy_project/issues"
+  },
+  "homepage": "https://github.com/birdepy/birdepy_project#readme",
+  "devDependencies": {
+    "semantic-release": "^20.1.0",
+    "semantic-release-pypi": "^2.5.0"
+  }
+}
