@@ -30,7 +30,7 @@ class TestUtility(unittest.TestCase):
         assert result[2] == 39
   
     def test_simulate_gwa(self):
-        bd.simulate.discrete([0.75, 0.25, 1/1000, 0], 'Verhulst', 10,
+        result = bd.simulate.discrete([0.75, 0.25, 1/1000, 0], 'Verhulst', 10,
                              [0, 10, 100], method='gwa', seed=2021)
         
         assert result[0] == 10
