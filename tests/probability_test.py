@@ -15,7 +15,7 @@ class TestUtility(unittest.TestCase):
         assert np.isclose(result, 0.016040426614336103)
         
     def test_probability_erlang(self):
-        result = bd.probability(19, 27, 1.0, [0.5, 0.3, 0.01, 0.01], model='Verhulst', method='da')[0, 0]
+        result = bd.probability(19, 27, 1.0, [0.5, 0.3, 0.01, 0.01], model='Verhulst', method='Erlang')[0, 0]
         
         assert np.isclose(result, 0.0161337966847677)
     
