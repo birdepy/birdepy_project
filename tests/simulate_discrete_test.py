@@ -11,7 +11,7 @@ class TestUtility(unittest.TestCase):
         assert result[1] == 0
         assert result[2] == 1
         assert result[3] == 2
-        assert result[4 == 2
+        assert result[4] == 2
 
     def test_simulate_ea(self):
         result = bd.simulate.discrete(1, 'Poisson', 0, times=[0, 1, 3, 4, 5], method='ea', seed=2021)
