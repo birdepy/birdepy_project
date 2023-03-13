@@ -4,14 +4,13 @@ from scipy.optimize import minimize, differential_evolution, NonlinearConstraint
 from scipy.optimize._numdiff import approx_derivative
 from scipy.stats import multivariate_normal
 import math
-from birdepy.iltcme import IltCmeParams
 from collections import Counter
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
 from gwr_inversion import gwr
 import json
-import importlib
+from importlib import resources
 
 def Jacobian(fun, x, bounds):
     """
@@ -374,8 +373,9 @@ def laplace_invert_mexp(fun, t, max_fun_evals, method="cme"):
     """
     if method == "cme":
         # find the most steep CME satisfying max_fun_evals
-        params = IltCmeParams.params[0]
-        for p in IltCmeParams.params:
+        iltcme_params = get_iltcme()
+        params = iltcme_params[0]
+        for p in iltcme_params:
             if p["cv2"] < params["cv2"] and (p["n"] + 1) <= max_fun_evals:
                 params = p
         eta = np.concatenate(([params["c"]],
@@ -439,8 +439,9 @@ def cme(fun, t, k):
         global cme_eta
         global cme_beta
         cme_k = k
-        cme_params = IltCmeParams.params[0]
-        for p in IltCmeParams.params:
+        iltcme_params = get_iltcme()
+        cme_params = iltcme_params[0]
+        for p in iltcme_params:
             if p['cv2'] < cme_params['cv2'] and (p['n'] + 1) <= cme_k:
                 cme_params = p
         cme_eta = [cme_params['a'][idx] + 1j * cme_params['b'][idx] for idx in
@@ -649,7 +650,8 @@ def trap_int(y, x):
                     )
     return res
 
-def iltcme_test():
-    with importlib.resources.open_text("birdepy.data_files", "iltcme.json") as data_file:
+def get_iltcme():
+    with resources.open_text("birdepy.data_files", "iltcme.json") as data_file:
         data = json.load(data_file)
     return data
+
