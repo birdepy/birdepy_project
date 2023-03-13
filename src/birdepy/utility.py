@@ -11,6 +11,7 @@ import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
 from gwr_inversion import gwr
 import json
+import importlib
 
 def Jacobian(fun, x, bounds):
     """
@@ -649,6 +650,6 @@ def trap_int(y, x):
     return res
 
 def iltcme_test():
-    f = open('birdepy/data_files/iltcme.json')
-    return json.load(f)
-
+    with importlib.resources.open_text("birdepy.data_files", "iltcme.json") as data_file:
+        data = json.load(data_file)
+    return data
