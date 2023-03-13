@@ -7,3 +7,5 @@ from birdepy.interface_forecast import forecast
 # imported together
 from birdepy import simulate
 # Note that the gpu_functions module is not imported by default
+
+from birdepy.utility import iltcme_test
