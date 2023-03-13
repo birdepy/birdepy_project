@@ -1,3 +1,10 @@
+## [0.0.17](https://github.com/birdepy/birdepy_project/compare/v0.0.16...v0.0.17) (2023-03-13)
+
+
+### Bug Fixes
+
+* updated iltcme import method ([4cf9ada](https://github.com/birdepy/birdepy_project/commit/4cf9ada04756f9cbfbf589b715b4ee53f52bdf82))
+
 ## [0.0.16](https://github.com/birdepy/birdepy_project/compare/v0.0.15...v0.0.16) (2023-03-13)
 
 
