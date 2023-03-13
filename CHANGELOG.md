@@ -1,3 +1,11 @@
+## [0.0.18](https://github.com/birdepy/birdepy_project/compare/v0.0.17...v0.0.18) (2023-03-13)
+
+
+### Bug Fixes
+
+* changed how resources is loaded ([c1f0618](https://github.com/birdepy/birdepy_project/commit/c1f0618af972cb6ccf60dee62e485431e9ea5d99))
+* updated iltcme method ([5b7377b](https://github.com/birdepy/birdepy_project/commit/5b7377b2350aca662f93c2bd3516e2a68f909097))
+
 ## [0.0.17](https://github.com/birdepy/birdepy_project/compare/v0.0.16...v0.0.17) (2023-03-13)
 
 
