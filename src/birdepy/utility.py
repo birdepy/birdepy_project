@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
 from gwr_inversion import gwr
-
+import json
 
 def Jacobian(fun, x, bounds):
     """
@@ -647,3 +647,8 @@ def trap_int(y, x):
                                                                    y[0:-1])))))
                     )
     return res
+
+def iltcme_test():
+    f = open('data_files/iltcme.json')
+    return json.load(f)
+
