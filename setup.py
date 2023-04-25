@@ -138,7 +138,12 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy>=1.17.0', 'mpmath>=1.2.0', 'scipy>=1.7.0', 'matplotlib>=3.4.2'],  # Optional
+    install_requires=['numpy>=1.17.0', 
+                      'mpmath>=1.2.0', 
+                      'scipy>=1.7.0', 
+                      'matplotlib>=3.4.2',
+                      'gwr-inversion>=1.0.1',
+                      'numba>=0.56.4'], 
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
