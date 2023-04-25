@@ -1,3 +1,10 @@
+## [0.0.19](https://github.com/birdepy/birdepy_project/compare/v0.0.18...v0.0.19) (2023-04-25)
+
+
+### Bug Fixes
+
+* rerunning release pipeline ([042e695](https://github.com/birdepy/birdepy_project/commit/042e69528caaf516e8fadf64e497acc515580f7d))
+
 ## [0.0.18](https://github.com/birdepy/birdepy_project/compare/v0.0.17...v0.0.18) (2023-03-13)
 
 
