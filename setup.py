@@ -145,7 +145,6 @@ setup(
                       'gwr-inversion>=1.0.1',
                       'numba>=0.56.4'], 
 
-
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
     # syntax, for example:
