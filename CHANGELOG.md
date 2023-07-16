@@ -1,3 +1,11 @@
+## [0.0.22](https://github.com/birdepy/birdepy_project/compare/v0.0.21...v0.0.22) (2023-07-16)
+
+
+### Bug Fixes
+
+* setup ([3d7261a](https://github.com/birdepy/birdepy_project/commit/3d7261a4563e86b951cfec19a6f16cc67b086404))
+* trying another way to include json ([3e88967](https://github.com/birdepy/birdepy_project/commit/3e889673efc6b21c2766f4c09feac549b9d55ff2))
+
 ## [0.0.21](https://github.com/birdepy/birdepy_project/compare/v0.0.20...v0.0.21) (2023-07-16)
 
 
