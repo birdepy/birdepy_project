@@ -1,3 +1,10 @@
+## [0.0.24](https://github.com/birdepy/birdepy_project/compare/v0.0.23...v0.0.24) (2023-07-16)
+
+
+### Bug Fixes
+
+* changed where json read from ([bd15e79](https://github.com/birdepy/birdepy_project/commit/bd15e79d09d1f27e026eef94f18a8d588e078ace))
+
 ## [0.0.23](https://github.com/birdepy/birdepy_project/compare/v0.0.22...v0.0.23) (2023-07-16)
 
 
