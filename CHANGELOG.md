@@ -1,3 +1,10 @@
+## [0.0.23](https://github.com/birdepy/birdepy_project/compare/v0.0.22...v0.0.23) (2023-07-16)
+
+
+### Bug Fixes
+
+* json file directory ([123230e](https://github.com/birdepy/birdepy_project/commit/123230e4c3c2b6772e944dc3504cae20135ffad9))
+
 ## [0.0.22](https://github.com/birdepy/birdepy_project/compare/v0.0.21...v0.0.22) (2023-07-16)
 
 
