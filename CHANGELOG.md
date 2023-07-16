@@ -1,3 +1,10 @@
+## [0.0.25](https://github.com/birdepy/birdepy_project/compare/v0.0.24...v0.0.25) (2023-07-16)
+
+
+### Bug Fixes
+
+* back to 0.0.19 with python >= 3.10 req added ([ac8f4bf](https://github.com/birdepy/birdepy_project/commit/ac8f4bfaafb8f99b745262e13cb08394633aa312))
+
 ## [0.0.24](https://github.com/birdepy/birdepy_project/compare/v0.0.23...v0.0.24) (2023-07-16)
 
 
