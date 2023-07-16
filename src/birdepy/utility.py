@@ -651,7 +651,7 @@ def trap_int(y, x):
     return res
 
 def get_iltcme():
-    with open("birdepy/data_files/iltcme.json", "r") as data_file:
+    with open("birdepy/data/iltcme.json", "r") as data_file:
         data = json.load(data_file)
     return data
 
