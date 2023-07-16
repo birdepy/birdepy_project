@@ -1,3 +1,11 @@
+## [0.0.21](https://github.com/birdepy/birdepy_project/compare/v0.0.20...v0.0.21) (2023-07-16)
+
+
+### Bug Fixes
+
+* added __init__ for data files ([716b4c6](https://github.com/birdepy/birdepy_project/commit/716b4c61837fe6d8075073ff002713db0877755f))
+* removed unnecessary test.py ([4ed72c6](https://github.com/birdepy/birdepy_project/commit/4ed72c6fce7d4807cde2080144d829f3abf71455))
+
 ## [0.0.20](https://github.com/birdepy/birdepy_project/compare/v0.0.19...v0.0.20) (2023-07-16)
 
 
