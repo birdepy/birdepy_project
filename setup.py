@@ -124,8 +124,10 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=find_packages(where='src'),  # Required
-
+    packages=['birdepy'],  # Required
+    package_dir={
+        'birdepy': 'src/birdepy'
+    },
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
     # and refuse to install the project if the version does not match. See
@@ -161,7 +163,7 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     package_data={  # Optional
-        'birdepy': ['data_files/iltcme.json'],
+        'birdepy': ['data/iltcme.json']
     },
     include_package_data=True,
     # Although 'package_data' is the preferred approach, in some case you may
