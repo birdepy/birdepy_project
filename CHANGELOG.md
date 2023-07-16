@@ -1,3 +1,10 @@
+## [0.0.20](https://github.com/birdepy/birdepy_project/compare/v0.0.19...v0.0.20) (2023-07-16)
+
+
+### Bug Fixes
+
+* changed how json data loaded ([d0709ba](https://github.com/birdepy/birdepy_project/commit/d0709ba20b9f00a11bf716ef59cce909d88bd6b4))
+
 ## [0.0.19](https://github.com/birdepy/birdepy_project/compare/v0.0.18...v0.0.19) (2023-04-25)
 
 
