@@ -10,6 +10,7 @@ import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
 from gwr_inversion import gwr
 import json
+from importlib import resources
 
 
 def Jacobian(fun, x, bounds):
@@ -27,10 +28,9 @@ def Hessian(fun, x, bounds):
     evaluating the function outside of 'bounds'.
     """
     bounds = [[b[0] for b in bounds], [b[1] for b in bounds]]
-    return approx_derivative(lambda y: approx_derivative(fun,
-                                                         y,
-                                                         bounds=bounds),
-                             x, bounds=bounds)
+    return approx_derivative(
+        lambda y: approx_derivative(fun, y, bounds=bounds), x, bounds=bounds
+    )
 
 
 def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
@@ -44,12 +44,14 @@ def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
     yCenter = mean[1]
     theta = np.linspace(0, 2 * np.pi, 100)
     x_vec = np.array([1, 0])
-    cosrotation = np.dot(x_vec, Evec[:, 1]) / \
-                  (np.linalg.norm(x_vec) * np.linalg.norm(Evec[:, 1]))
+    cosrotation = np.dot(x_vec, Evec[:, 1]) / (
+        np.linalg.norm(x_vec) * np.linalg.norm(Evec[:, 1])
+    )
     rotation = np.pi / 2 - np.arccos(cosrotation)
 
-    R = np.array([[np.sin(rotation), np.cos(rotation)],
-                  [-np.cos(rotation), np.sin(rotation)]])
+    R = np.array(
+        [[np.sin(rotation), np.cos(rotation)], [-np.cos(rotation), np.sin(rotation)]]
+    )
 
     chisq = [1.368, 3.2188, 5.991]
 
@@ -77,29 +79,34 @@ def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
 
     fig, (ax) = plt.subplots(figsize=(7, 5))
 
-    labels = ['$50\%$', '$80\%$', '$95\%$']
-    linestyles = [':', '--', '-']
+    labels = ["$50\%$", "$80\%$", "$95\%$"]
+    linestyles = [":", "--", "-"]
 
     for i in range(len(chisq)):
-        ax.plot(x_plot[:, i], y_plot[:, i], label=labels[i],
-                linestyle=linestyles[i], color='k')
+        ax.plot(
+            x_plot[:, i],
+            y_plot[:, i],
+            label=labels[i],
+            linestyle=linestyles[i],
+            color="k",
+        )
     ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.plot(mean[0], mean[1], '+k', label="Estimate")
+    ax.plot(mean[0], mean[1], "+k", label="Estimate")
     if obs is not None:
-        ax.scatter(obs[:, 0], obs[:, 1], c="b", marker="^", s=5,
-                   label="Simulated\n samples")
+        ax.scatter(
+            obs[:, 0], obs[:, 1], c="b", marker="^", s=5, label="Simulated\n samples"
+        )
     if se_type == "asymptotic":
         ax.set_title("Asymptotic confidence region")
     elif se_type == "simulated":
         ax.set_title("Simulated confidence region")
     ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    fig.set_tight_layout({
-        'pad': 0
-    })
+    fig.set_tight_layout({"pad": 0})
     if isinstance(export, str):
         import tikzplotlib
+
         tikzplotlib.save(export + ".tex")
     return
 
@@ -145,10 +152,13 @@ def data_sort(t_data, p_data):
     all_transitions = []
     for idx1 in range(len(p_data)):
         for idx2 in range(len(p_data[idx1]) - 1):
-            all_transitions.append((p_data[idx1][idx2],
-                                    p_data[idx1][idx2 + 1],
-                                    t_data[idx1][idx2 + 1] -
-                                    t_data[idx1][idx2]))
+            all_transitions.append(
+                (
+                    p_data[idx1][idx2],
+                    p_data[idx1][idx2 + 1],
+                    t_data[idx1][idx2 + 1] - t_data[idx1][idx2],
+                )
+            )
     return Counter(all_transitions)
 
 
@@ -192,34 +202,35 @@ def higher_birth(model):
     Returns a function that gives the birth rate as a function
     of population size and parameters.
     """
-    if model == 'Verhulst':
-        return lambda z, p: ((p[2]*z) <= 1) * p[0] * (1 - p[2]*z) * z
-    elif model == 'Ricker':
-        return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * z
-    elif model == 'Hassell':
-        return lambda z, p: \
-            p[0] * z / (1 + p[2] * z) ** p[3]
-    elif model == 'MS-S':
-        return lambda z, p: \
-            p[0] * z / (1 + (p[2] * z) ** p[3])
-    elif model == 'Moran':
+    if model == "Verhulst":
+        return lambda z, p: ((p[2] * z) <= 1) * p[0] * (1 - p[2] * z) * z
+    elif model == "Ricker":
+        return lambda z, p: p[0] * np.exp(-((p[2] * z) ** p[3])) * z
+    elif model == "Hassell":
+        return lambda z, p: p[0] * z / (1 + p[2] * z) ** p[3]
+    elif model == "MS-S":
+        return lambda z, p: p[0] * z / (1 + (p[2] * z) ** p[3])
+    elif model == "Moran":
         return lambda z, p: (z <= p[4]) * (
-            (p[4] - z) * (p[0] * z * (1 - p[2]) / p[4] + p[1] * (p[4] - z) * p[3] / p[4]) / p[4])
-    elif model == 'pure-birth':
+            (p[4] - z)
+            * (p[0] * z * (1 - p[2]) / p[4] + p[1] * (p[4] - z) * p[3] / p[4])
+            / p[4]
+        )
+    elif model == "pure-birth":
         return lambda z, p: p[0] * z
-    elif model == 'pure-death':
+    elif model == "pure-death":
         return lambda z, p: 0
-    elif model == 'Poisson':
+    elif model == "Poisson":
         return lambda z, p: p[0]
-    elif model == 'linear':
+    elif model == "linear":
         return lambda z, p: p[0] * z
-    elif model == 'linear-migration':
+    elif model == "linear-migration":
         return lambda z, p: p[0] * z + p[2]
-    elif model == 'M/M/1':
+    elif model == "M/M/1":
         return lambda z, p: p[0]
-    elif model == 'M/M/inf':
+    elif model == "M/M/inf":
         return lambda z, p: p[0]
-    elif model == 'loss-system':
+    elif model == "loss-system":
         return lambda z, p: (z < p[2]) * p[0]
     else:
         raise TypeError("Argument 'model' has an unknown value.")
@@ -230,21 +241,27 @@ def higher_death(model):
     Returns a function that gives the death rate as a function
     of population size and parameters.
     """
-    if model == 'Verhulst':
-        return lambda z, p: p[1] * (1 + p[3]*z) * z
-    elif model in ['Ricker', 'Hassell',
-                   'MS-S', 'loss-system', 'linear',
-                   'linear-migration', 'M/M/inf']:
+    if model == "Verhulst":
+        return lambda z, p: p[1] * (1 + p[3] * z) * z
+    elif model in [
+        "Ricker",
+        "Hassell",
+        "MS-S",
+        "loss-system",
+        "linear",
+        "linear-migration",
+        "M/M/inf",
+    ]:
         return lambda z, p: p[1] * z
-    elif model == 'Moran':
+    elif model == "Moran":
         return lambda z, p: (z <= p[4]) * (
-            z * (p[2] * (p[4] - z) * (1 - p[3]) / p[4] +
-                 p[0] * z * p[2] / p[4]) / p[4])
-    elif model == 'M/M/1':
+            z * (p[2] * (p[4] - z) * (1 - p[3]) / p[4] + p[0] * z * p[2] / p[4]) / p[4]
+        )
+    elif model == "M/M/1":
         return lambda z, p: (z > 0) * p[1]
-    elif model in ['pure-birth', 'Poisson']:
+    elif model in ["pure-birth", "Poisson"]:
         return lambda z, p: 0
-    elif model == 'pure-death':
+    elif model == "pure-death":
         return lambda z, p: p[0] * z
     else:
         raise TypeError("Argument 'model' has an unknown value.")
@@ -256,32 +273,46 @@ def higher_h_fun(model):
     to population size of the function given by the birth rate
     minus the death rate.
     """
-    if model == 'Verhulst':
-        return lambda z, p: p[0]-p[1]-2*z*(p[0]*p[2]+p[1]*p[3])
-    elif model == 'Ricker':
-        return lambda z, p: p[0] * np.exp(-(p[2] * z)**p[3]) * (1 - p[3]*(p[2] * z)**p[3]) - p[1]
-    elif model == 'Hassell':
-        return lambda z, p: (p[0] * (1 + p[2]*z - p[3] * z)) / \
-                            (1 + (p[2] * z)) ** p[3] - p[1]
-    elif model == 'MS-S':
-        return lambda z, p: (p[0] * (1 + (p[2] * z) ** p[3] * (1 - p[3]))) / \
-                            (1 + (p[2] * z) ** p[3]) ** 2
-    elif model == 'Moran':
-        return lambda z, p: (z*p[0]*(p[4]*(1-p[2])-z) + p[1]*(z-[4])*(z-p[4]*p[3]))\
-                            / p[4]**2
-    elif model == 'linear':
+    if model == "Verhulst":
+        return lambda z, p: p[0] - p[1] - 2 * z * (p[0] * p[2] + p[1] * p[3])
+    elif model == "Ricker":
+        return (
+            lambda z, p: p[0]
+            * np.exp(-((p[2] * z) ** p[3]))
+            * (1 - p[3] * (p[2] * z) ** p[3])
+            - p[1]
+        )
+    elif model == "Hassell":
+        return (
+            lambda z, p: (p[0] * (1 + p[2] * z - p[3] * z)) / (1 + (p[2] * z)) ** p[3]
+            - p[1]
+        )
+    elif model == "MS-S":
+        return (
+            lambda z, p: (p[0] * (1 + (p[2] * z) ** p[3] * (1 - p[3])))
+            / (1 + (p[2] * z) ** p[3]) ** 2
+        )
+    elif model == "Moran":
+        return (
+            lambda z, p: (
+                z * p[0] * (p[4] * (1 - p[2]) - z)
+                + p[1] * (z - [4]) * (z - p[4] * p[3])
+            )
+            / p[4] ** 2
+        )
+    elif model == "linear":
         return lambda z, p: (p[0] - p[1]) * (z - z + 1)
-    elif model == 'linear-migration':
+    elif model == "linear-migration":
         return lambda z, p: (p[0] - p[1]) * (z - z + 1)
-    elif model == 'M/M/1':
+    elif model == "M/M/1":
         return lambda z, p: 0 * (z - z + 1)
-    elif model == 'M/M/inf':
+    elif model == "M/M/inf":
         return lambda z, p: -p[1] * (z - z + 1)
-    elif model == 'pure-birth':
+    elif model == "pure-birth":
         return lambda z, p: p[0] * (z - z + 1)
-    elif model == 'pure-death':
+    elif model == "pure-death":
         return lambda z, p: -p[0] * (z - z + 1)
-    elif model == 'Poisson':
+    elif model == "Poisson":
         return lambda z, p: 0 * (z - z + 1)
     else:
         raise TypeError("Unknown model.")
@@ -291,32 +322,54 @@ def higher_zf_bld(model):
     """
     Returns the fixed points of the fluid model associated with the model.
     """
-    if model == 'Verhulst':
-        return lambda p: [0, (p[0]-p[1])/(p[2]*p[0] + p[1]*p[3])]
-    elif model == 'Ricker':
-        return lambda p: [0, ((np.log(p[0] / p[1]))**(1/p[3])) / p[2]]
-    elif model == 'Hassell':
-        return lambda p: [0, ((p[0] / p[1]) ** (1 / p[3]) - 1)/p[2]]
-    elif model == 'MS-S':
-        return lambda p: [0, ((p[0] / p[1] - 1) ** (1 / p[3]))/p[2]]
-    elif model == 'Moran':
-        return lambda p: [p[4]*(p[0]*(1-p[2])-p[1]*(1+p[3]) + np.sqrt((p[2]-1)**2 * p[0]**2 + 2 * p[0] * p[1]*(p[2]+p[3]+p[2]*p[3]-1) + p[1] ** 2 *(p[3]-1)**2))/(2*(p[0]-p[1])),
-                          p[4]*(p[0]*(1-p[2])-p[1]*(1+p[3]) - np.sqrt((p[2]-1)**2 * p[0]**2 + 2 * p[0] * p[1]*(p[2]+p[3]+p[2]*p[3]-1) + p[1] ** 2 *(p[3]-1)**2))/(2*(p[0]-p[1]))]
-    elif model == 'linear':
+    if model == "Verhulst":
+        return lambda p: [0, (p[0] - p[1]) / (p[2] * p[0] + p[1] * p[3])]
+    elif model == "Ricker":
+        return lambda p: [0, ((np.log(p[0] / p[1])) ** (1 / p[3])) / p[2]]
+    elif model == "Hassell":
+        return lambda p: [0, ((p[0] / p[1]) ** (1 / p[3]) - 1) / p[2]]
+    elif model == "MS-S":
+        return lambda p: [0, ((p[0] / p[1] - 1) ** (1 / p[3])) / p[2]]
+    elif model == "Moran":
+        return lambda p: [
+            p[4]
+            * (
+                p[0] * (1 - p[2])
+                - p[1] * (1 + p[3])
+                + np.sqrt(
+                    (p[2] - 1) ** 2 * p[0] ** 2
+                    + 2 * p[0] * p[1] * (p[2] + p[3] + p[2] * p[3] - 1)
+                    + p[1] ** 2 * (p[3] - 1) ** 2
+                )
+            )
+            / (2 * (p[0] - p[1])),
+            p[4]
+            * (
+                p[0] * (1 - p[2])
+                - p[1] * (1 + p[3])
+                - np.sqrt(
+                    (p[2] - 1) ** 2 * p[0] ** 2
+                    + 2 * p[0] * p[1] * (p[2] + p[3] + p[2] * p[3] - 1)
+                    + p[1] ** 2 * (p[3] - 1) ** 2
+                )
+            )
+            / (2 * (p[0] - p[1])),
+        ]
+    elif model == "linear":
         return lambda p: [0]
-    elif model == 'linear-migration':
+    elif model == "linear-migration":
         return lambda p: [-p[2] / (p[0] - p[1])]
-    elif model == 'Poisson':
+    elif model == "Poisson":
         return lambda p: [np.nan]
-    elif model == 'M/M/1':
+    elif model == "M/M/1":
         return lambda p: [np.nan]
-    elif model == 'M/M/inf':
+    elif model == "M/M/inf":
         return lambda p: [p[0] / p[1]]
-    elif model == 'pure-birth':
+    elif model == "pure-birth":
         return lambda p: [np.nan]
-    elif model == 'pure-death':
+    elif model == "pure-death":
         return lambda p: [np.nan]
-    elif model == 'loss-system':
+    elif model == "loss-system":
         return lambda p: [np.nan]
     else:
         raise TypeError("Unknown model.")
@@ -351,8 +404,9 @@ def p_bld(p_prop, idx_known_p, known_p):
     p_size = known_p.size + p_prop.size
     idx_known_p = list(idx_known_p)
     if len(known_p) != len(idx_known_p):
-        raise TypeError("Argument 'idx_known_p' and argument 'known_p' must"
-                        " be the same size.")
+        raise TypeError(
+            "Argument 'idx_known_p' and argument 'known_p' must" " be the same size."
+        )
     idx_unknown_p = list(set(range(p_size)) - set(idx_known_p))
     p = np.empty(p_size)
     p[idx_known_p] = known_p
@@ -378,23 +432,33 @@ def laplace_invert_mexp(fun, t, max_fun_evals, method="cme"):
         for p in iltcme_params:
             if p["cv2"] < params["cv2"] and (p["n"] + 1) <= max_fun_evals:
                 params = p
-        eta = np.concatenate(([params["c"]],
-                              np.array(params["a"]) + 1j * np.array(
-                                  params["b"]))) * params["mu1"]
+        eta = (
+            np.concatenate(
+                ([params["c"]], np.array(params["a"]) + 1j * np.array(params["b"]))
+            )
+            * params["mu1"]
+        )
         # print('eta:', eta)
-        beta = np.concatenate(
-            ([1], 1 + 1j * np.arange(1, params["n"] + 1)
-             * params["omega"])) * params["mu1"]
+        beta = (
+            np.concatenate(
+                ([1], 1 + 1j * np.arange(1, params["n"] + 1) * params["omega"])
+            )
+            * params["mu1"]
+        )
         # print('beta:', beta)
     elif method == "euler":
         n_euler = math.floor((max_fun_evals - 1) / 2)
         eta = np.concatenate(
-            ([0.5], np.ones(n_euler), np.zeros(n_euler - 1), [2 ** -n_euler]))
+            ([0.5], np.ones(n_euler), np.zeros(n_euler - 1), [2**-n_euler])
+        )
         logsum = np.cumsum(np.log(np.arange(1, n_euler + 1)))
         for k in range(1, n_euler):
             eta[2 * n_euler - k] = eta[2 * n_euler - k + 1] + math.exp(
-                logsum[n_euler - 1] - n_euler * math.log(2.0) - logsum[k - 1] -
-                logsum[n_euler - k - 1])
+                logsum[n_euler - 1]
+                - n_euler * math.log(2.0)
+                - logsum[k - 1]
+                - logsum[n_euler - k - 1]
+            )
         k = np.arange(2 * n_euler + 1)
         beta = n_euler * math.log(10.0) / 3.0 + 1j * math.pi * k
         eta = (10 ** ((n_euler) / 3.0)) * (1 - (k % 2) * 2) * eta
@@ -405,18 +469,23 @@ def laplace_invert_mexp(fun, t, max_fun_evals, method="cme"):
         eta = np.zeros(max_fun_evals)
         beta = np.zeros(max_fun_evals)
         logsum = np.concatenate(
-            ([0], np.cumsum(np.log(np.arange(1, max_fun_evals + 1)))))
+            ([0], np.cumsum(np.log(np.arange(1, max_fun_evals + 1))))
+        )
         for k in range(1, max_fun_evals + 1):
             insisum = 0.0
             for j in range(math.floor((k + 1) / 2), min(k, ndiv2) + 1):
                 insisum += math.exp(
-                    (ndiv2 + 1) * math.log(j) - logsum[ndiv2 - j] + logsum[
-                        2 * j] - 2 * logsum[j] - logsum[k - j] - logsum[
-                        2 * j - k])
+                    (ndiv2 + 1) * math.log(j)
+                    - logsum[ndiv2 - j]
+                    + logsum[2 * j]
+                    - 2 * logsum[j]
+                    - logsum[k - j]
+                    - logsum[2 * j - k]
+                )
             eta[k - 1] = math.log(2.0) * (-1) ** (k + ndiv2) * insisum
             beta[k - 1] = k * math.log(2.0)
     else:
-        raise TypeError('Unknown Laplace inversion method.')
+        raise TypeError("Unknown Laplace inversion method.")
     res = []
     for x in t:
         res.append(eta.dot([fun(b / x) for b in beta]).real / x)
@@ -433,7 +502,7 @@ def cme(fun, t, k):
     Numerical inverse Laplace transformation using concentrated matrix
     exponential distributions. Performance Evaluation, 137, 102067.
     """
-    if 'cme_params' not in globals() or globals()['cme_k'] != k:
+    if "cme_params" not in globals() or globals()["cme_k"] != k:
         global cme_params
         global cme_k
         global cme_eta
@@ -442,16 +511,19 @@ def cme(fun, t, k):
         iltcme_params = get_iltcme()
         cme_params = iltcme_params[0]
         for p in iltcme_params:
-            if p['cv2'] < cme_params['cv2'] and (p['n'] + 1) <= cme_k:
+            if p["cv2"] < cme_params["cv2"] and (p["n"] + 1) <= cme_k:
                 cme_params = p
-        cme_eta = [cme_params['a'][idx] + 1j * cme_params['b'][idx] for idx in
-                   range(cme_params['n'])]
-        cme_eta.insert(0, cme_params['c'] + 1j * 0)
-        cme_eta = mp.matrix(cme_eta).T * cme_params['mu1']
-        cme_beta = [1 + 1j * idx * cme_params['omega'] for idx in
-                    range(1, cme_params['n'] + 1)]
+        cme_eta = [
+            cme_params["a"][idx] + 1j * cme_params["b"][idx]
+            for idx in range(cme_params["n"])
+        ]
+        cme_eta.insert(0, cme_params["c"] + 1j * 0)
+        cme_eta = mp.matrix(cme_eta).T * cme_params["mu1"]
+        cme_beta = [
+            1 + 1j * idx * cme_params["omega"] for idx in range(1, cme_params["n"] + 1)
+        ]
         cme_beta.insert(0, 1)
-        cme_beta = mp.matrix(cme_beta) * cme_params['mu1']
+        cme_beta = mp.matrix(cme_beta) * cme_params["mu1"]
     foo = mp.matrix([fun(mp.fdiv(b, t)) for b in cme_beta])
     foo = cme_eta * foo
     return float(mp.fdiv(mp.re(foo[0]), t))
@@ -461,38 +533,40 @@ def laplace_invert(fun, t, **options):
     """
     Numerical Laplace transform inversion using a variety of different methods.
     """
-    if 'laplace_method' in options.keys():
-        laplace_method = options['laplace_method']
+    if "laplace_method" in options.keys():
+        laplace_method = options["laplace_method"]
     else:
-        laplace_method = 'cme-mp'
-    if 'k' in options.keys():
-        k = options['k']
+        laplace_method = "cme-mp"
+    if "k" in options.keys():
+        k = options["k"]
     else:
         k = 25
-    if laplace_method == 'gwr':
+    if laplace_method == "gwr":
         return float(gwr(fun, time=t, M=k))
-    elif laplace_method in ['cme', 'euler', 'gaver']:
+    elif laplace_method in ["cme", "euler", "gaver"]:
         return laplace_invert_mexp(fun, [t], k, method=laplace_method)[0]
-    elif laplace_method in ['talbot', 'stehfest', 'dehoog']:
+    elif laplace_method in ["talbot", "stehfest", "dehoog"]:
         return float(mp.invertlaplace(fun, t, method=laplace_method))
-    elif laplace_method == 'cme-mp':
+    elif laplace_method == "cme-mp":
         return cme(fun, t, k)
-    elif laplace_method == 'cme-talbot':
-        if 'f_bounds' in options.keys():
-            f_min = options['f_bounds'][0]
-            f_max = options['f_bounds'][1]
+    elif laplace_method == "cme-talbot":
+        if "f_bounds" in options.keys():
+            f_min = options["f_bounds"][0]
+            f_max = options["f_bounds"][1]
         else:
-            raise TypeError("When 'laplace_method' is 'cme-talbot', kwarg"
-                            "'f_bounds' must be given as a list [f_min, f_max]."
-                            "When method 'cme-mp' returns a value outside "
-                            "these bounds, method 'talbot' is used instead. ")
+            raise TypeError(
+                "When 'laplace_method' is 'cme-talbot', kwarg"
+                "'f_bounds' must be given as a list [f_min, f_max]."
+                "When method 'cme-mp' returns a value outside "
+                "these bounds, method 'talbot' is used instead. "
+            )
         output = cme(fun, t, k)
         if f_min <= output <= f_max:
             return output
         else:
-            return float(mp.invertlaplace(fun, t, method='talbot'))
+            return float(mp.invertlaplace(fun, t, method="talbot"))
     else:
-        raise TypeError('Unknown Laplace inversion method.')
+        raise TypeError("Unknown Laplace inversion method.")
 
 
 def add_options(options):
@@ -501,66 +575,66 @@ def add_options(options):
     Is needed to enable BirDePy to specify default values for options
     in the SciPy optimization functions.
     """
-    if 'seed' not in options.keys():
-        options['seed'] = np.random.default_rng()
-    if 'strategy' not in options.keys():
-        options['strategy'] = 'best1bin'
-    if 'maxiter' not in options.keys():
-        options['maxiter'] = 1000
-    if 'popsize' not in options.keys():
-        options['popsize'] = 15
-    if 'tol' not in options.keys():
-        options['tol'] = 0.01
-    if 'mutation' not in options.keys():
-        options['mutation'] = 0.5
-    if 'recombination' not in options.keys():
-        options['recombination'] = 0.7
-    if 'callback' not in options.keys():
-        options['callback'] = None
-    if 'disp' not in options.keys():
-        options['disp'] = False
-    if 'polish' not in options.keys():
-        options['polish'] = True
-    if 'init' not in options.keys():
-        options['init'] = 'latinhypercube'
-    if 'atol' not in options.keys():
-        options['atol'] = 0
-    if 'updating' not in options.keys():
-        options['updating'] = 'immediate'
-    if 'jac' not in options.keys():
-        options['jac'] = '2-point'
-    if 'maxcor' not in options.keys():
-        options['maxcor'] = 10
-    if 'ftol' not in options.keys():
-        options['ftol'] = 2.220446049250313e-09
-    if 'gtol' not in options.keys():
-        options['gtol'] = 1e-05
-    if 'eps' not in options.keys():
-        options['eps'] = None
-    if 'maxfun' not in options.keys():
-        options['maxfun'] = 15000
-    if 'maxiter' not in options.keys():
-        options['maxiter'] = 15000
-    if 'iprint' not in options.keys():
-        options['iprint'] = -1
-    if 'callback' not in options.keys():
-        options['callback'] = None
-    if 'maxls' not in options.keys():
-        options['maxls'] = 20
-    if 'finite_diff_rel_step' not in options.keys():
-        options['finite_diff_rel_step'] = None
-    if 'ftol' not in options.keys():
-        options['ftol'] = 1e-06
-    if 'eps' not in options.keys():
-        options['eps'] = 1.4901161193847656e-08
-    if 'disp' not in options.keys():
-        options['disp'] = False
-    if 'maxiter' not in options.keys():
-        options['maxiter'] = 100
-    if 'finite_diff_rel_step' not in options.keys():
-        options['finite_diff_rel_step'] = None
-    if 'jac' not in options.keys():
-        options['jac'] = None
+    if "seed" not in options.keys():
+        options["seed"] = np.random.default_rng()
+    if "strategy" not in options.keys():
+        options["strategy"] = "best1bin"
+    if "maxiter" not in options.keys():
+        options["maxiter"] = 1000
+    if "popsize" not in options.keys():
+        options["popsize"] = 15
+    if "tol" not in options.keys():
+        options["tol"] = 0.01
+    if "mutation" not in options.keys():
+        options["mutation"] = 0.5
+    if "recombination" not in options.keys():
+        options["recombination"] = 0.7
+    if "callback" not in options.keys():
+        options["callback"] = None
+    if "disp" not in options.keys():
+        options["disp"] = False
+    if "polish" not in options.keys():
+        options["polish"] = True
+    if "init" not in options.keys():
+        options["init"] = "latinhypercube"
+    if "atol" not in options.keys():
+        options["atol"] = 0
+    if "updating" not in options.keys():
+        options["updating"] = "immediate"
+    if "jac" not in options.keys():
+        options["jac"] = "2-point"
+    if "maxcor" not in options.keys():
+        options["maxcor"] = 10
+    if "ftol" not in options.keys():
+        options["ftol"] = 2.220446049250313e-09
+    if "gtol" not in options.keys():
+        options["gtol"] = 1e-05
+    if "eps" not in options.keys():
+        options["eps"] = None
+    if "maxfun" not in options.keys():
+        options["maxfun"] = 15000
+    if "maxiter" not in options.keys():
+        options["maxiter"] = 15000
+    if "iprint" not in options.keys():
+        options["iprint"] = -1
+    if "callback" not in options.keys():
+        options["callback"] = None
+    if "maxls" not in options.keys():
+        options["maxls"] = 20
+    if "finite_diff_rel_step" not in options.keys():
+        options["finite_diff_rel_step"] = None
+    if "ftol" not in options.keys():
+        options["ftol"] = 1e-06
+    if "eps" not in options.keys():
+        options["eps"] = 1.4901161193847656e-08
+    if "disp" not in options.keys():
+        options["disp"] = False
+    if "maxiter" not in options.keys():
+        options["maxiter"] = 100
+    if "finite_diff_rel_step" not in options.keys():
+        options["finite_diff_rel_step"] = None
+    if "jac" not in options.keys():
+        options["jac"] = None
     return options
 
 
@@ -568,59 +642,80 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
     """
     Minimizes 'error_fun' using the method specified by 'opt_method'.
     """
-    if opt_method == 'differential-evolution':
+    if opt_method == "differential-evolution":
         if con != ():
             old_con = con
-            con= (NonlinearConstraint(con['fun'], 0, np.inf))
-        sol = differential_evolution(error_fun, p_bounds, args=(),
-                                     strategy=options['strategy'],
-                                     maxiter=options['maxiter'],
-                                     popsize=options['popsize'],
-                                     tol=options['tol'],
-                                     mutation=options['mutation'],
-                                     recombination=options[
-                                         'recombination'],
-                                     seed=options['seed'],
-                                     callback=options['callback'],
-                                     disp=options['disp'],
-                                     polish=False,
-                                     init=options['init'],
-                                     atol=options['atol'],
-                                     updating=options['updating'],
-                                     constraints=con)
-        if options['polish']:
+            con = NonlinearConstraint(con["fun"], 0, np.inf)
+        sol = differential_evolution(
+            error_fun,
+            p_bounds,
+            args=(),
+            strategy=options["strategy"],
+            maxiter=options["maxiter"],
+            popsize=options["popsize"],
+            tol=options["tol"],
+            mutation=options["mutation"],
+            recombination=options["recombination"],
+            seed=options["seed"],
+            callback=options["callback"],
+            disp=options["disp"],
+            polish=False,
+            init=options["init"],
+            atol=options["atol"],
+            updating=options["updating"],
+            constraints=con,
+        )
+        if options["polish"]:
             if con != ():
-                sol = minimize(error_fun, sol.x, method='SLSQP', bounds=p_bounds,
-                               constraints=old_con)
+                sol = minimize(
+                    error_fun,
+                    sol.x,
+                    method="SLSQP",
+                    bounds=p_bounds,
+                    constraints=old_con,
+                )
             else:
-                sol = minimize(error_fun, sol.x, method='L-BFGS-B', bounds=p_bounds)
-    elif opt_method == 'L-BFGS-B':
-        sol = minimize(error_fun, p0, method=opt_method, bounds=p_bounds,
-                       callback=options['callback'],
-                       jac=options['jac'],
-                       options={'maxcor': options['maxcor'],
-                                'ftol': options['ftol'],
-                                'gtol': options['gtol'],
-                                'eps': options['eps'],
-                                'maxfun': options['maxfun'],
-                                'maxiter': options['maxiter'],
-                                'iprint': options['iprint'],
-                                'maxls': options['maxls'],
-                                'finite_diff_rel_step':
-                                    options['finite_diff_rel_step']})
-    elif opt_method == 'SLSQP':
-        sol = minimize(error_fun, p0, method=opt_method, bounds=p_bounds,
-                       constraints=con,
-                       jac=options['jac'],
-                       options={'ftol': options['ftol'],
-                                'eps': options['eps'],
-                                'disp': options['disp'],
-                                'maxiter': options['maxiter'],
-                                'finite_diff_rel_step':
-                                    options['finite_diff_rel_step']})
+                sol = minimize(error_fun, sol.x, method="L-BFGS-B", bounds=p_bounds)
+    elif opt_method == "L-BFGS-B":
+        sol = minimize(
+            error_fun,
+            p0,
+            method=opt_method,
+            bounds=p_bounds,
+            callback=options["callback"],
+            jac=options["jac"],
+            options={
+                "maxcor": options["maxcor"],
+                "ftol": options["ftol"],
+                "gtol": options["gtol"],
+                "eps": options["eps"],
+                "maxfun": options["maxfun"],
+                "maxiter": options["maxiter"],
+                "iprint": options["iprint"],
+                "maxls": options["maxls"],
+                "finite_diff_rel_step": options["finite_diff_rel_step"],
+            },
+        )
+    elif opt_method == "SLSQP":
+        sol = minimize(
+            error_fun,
+            p0,
+            method=opt_method,
+            bounds=p_bounds,
+            constraints=con,
+            jac=options["jac"],
+            options={
+                "ftol": options["ftol"],
+                "eps": options["eps"],
+                "disp": options["disp"],
+                "maxiter": options["maxiter"],
+                "finite_diff_rel_step": options["finite_diff_rel_step"],
+            },
+        )
     else:
-        sol = minimize(error_fun, p0, method=opt_method, bounds=p_bounds,
-                       constraints=con)
+        sol = minimize(
+            error_fun, p0, method=opt_method, bounds=p_bounds, constraints=con
+        )
     return sol
 
 
@@ -643,15 +738,18 @@ def trap_int(y, x):
     """
     x = np.array(x)
     y = np.array(y)
-    res = np.hstack(([0], np.cumsum(np.multiply(0.5,
-                                                np.multiply(np.diff(x),
-                                                            np.add(y[1:],
-                                                                   y[0:-1])))))
-                    )
+    res = np.hstack(
+        (
+            [0],
+            np.cumsum(
+                np.multiply(0.5, np.multiply(np.diff(x), np.add(y[1:], y[0:-1])))
+            ),
+        )
+    )
     return res
 
+
 def get_iltcme():
-    with open("data/iltcme.json", "r") as data_file:
+    with resources.open_text("birdepy.data_files", "iltcme.json") as data_file:
         data = json.load(data_file)
     return data
-

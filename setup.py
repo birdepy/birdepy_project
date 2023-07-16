@@ -96,10 +96,8 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate you support Python 3. These classifiers are *not*
         # checked by 'pip install'. See instead 'python_requires' below.
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3 :: Only',
     ],
 
@@ -113,7 +111,7 @@ setup(
 
     # When your source code is in a subdirectory under the project root, e.g.
     # `src/`, it is necessary to specify the `package_dir` argument.
-    # package_dir={'': 'src'},  # Optional
+    package_dir={'': 'src'},  # Optional
 
     # You can just specify package directories manually here if your project is
     # simple. Or you can use find_packages().
@@ -124,15 +122,13 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=['birdepy'],  # Required
-    package_dir={
-        'birdepy': 'src/birdepy'
-    },
+    packages=find_packages(where='src'),  # Required
+
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
     # and refuse to install the project if the version does not match. See
     # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
-    python_requires='>=3.7',
+    python_requires='>=3.10',
 
     # This field lists other packages that your project depends on to run.
     # Any package you put here will be installed by pip when your project is
@@ -163,7 +159,7 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     package_data={  # Optional
-        'birdepy': ['data/iltcme.json']
+        'birdepy': ['data_files/iltcme.json'],
     },
     include_package_data=True,
     # Although 'package_data' is the preferred approach, in some case you may
