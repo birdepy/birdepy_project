@@ -102,6 +102,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         `known_p` must also be specified. See :ref:`here <Known Parameters>`
         for more information.
 
+    opt_method: str or callable, optional
+        Type of solver.  Should be one of the options available to 
+        :func:`scipy.optimize.minimize` (see `here <https://docs.scipy.org/doc/scipy/reference/optimize.html>`_
+        for more information) or 'differential-evolution' (see `here <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html>`_
+        for more information). 
+
     se_type: string, optional
         Should be one of: 'none' (default), 'simulated', or 'asymptotic'.
         See :ref:`here <Confidence Regions>` for more information.
