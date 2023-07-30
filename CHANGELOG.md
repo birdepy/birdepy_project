@@ -1,3 +1,10 @@
+## [0.0.26](https://github.com/birdepy/birdepy_project/compare/v0.0.25...v0.0.26) (2023-07-30)
+
+
+### Bug Fixes
+
+* added opt_method to doc string of estimate function ([10c5905](https://github.com/birdepy/birdepy_project/commit/10c5905c7eb38e125390252de2b57a4058a22d9b))
+
 ## [0.0.25](https://github.com/birdepy/birdepy_project/compare/v0.0.24...v0.0.25) (2023-07-16)
 
 
