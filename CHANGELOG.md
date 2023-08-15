@@ -1,3 +1,10 @@
+## [0.0.27](https://github.com/birdepy/birdepy_project/compare/v0.0.26...v0.0.27) (2023-08-15)
+
+
+### Bug Fixes
+
+* added a note to estimate function docstring ([50fb84a](https://github.com/birdepy/birdepy_project/commit/50fb84a556590f322a74d6890336c79f29c012e8))
+
 ## [0.0.26](https://github.com/birdepy/birdepy_project/compare/v0.0.25...v0.0.26) (2023-07-30)
 
 
