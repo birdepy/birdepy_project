@@ -17,7 +17,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
              se_type='asymptotic', seed=None, ci_plot=False, export=False, display=False,
              **options):
     """Parameter estimation for (continuously or discretely observed)
-    continuous-time birth-and-death processes.
+    continuous-time birth-and-death processes. 
 
     Parameters
     ----------
@@ -187,6 +187,14 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     Notes
     -----
+    For practitioners aiming to fit a specific model to their data, the default methods for
+    estimation should generally suffice to meet their needs. However, it is advisable for 
+    practitioners to evaluate the estimation results using their expert judgment. If the 
+    outcomes do not align with existing theory or other established facts, it is recommended 
+    that they explore alternative options. For example, setting the opt_method parameter to 
+    'differential-evolution' may provide more accurate results at the cost of longer computation
+    times. 
+
     Estimation algorithms and models are also described in [1]. If you use this
     function for published work, then please cite this paper.
 
