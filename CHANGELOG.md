@@ -1,3 +1,18 @@
+# [1.0.0](https://github.com/birdepy/birdepy_project/compare/v0.0.27...v1.0.0) (2024-11-30)
+
+
+* Merge pull request #64 from birdepy/feature/journal ([bc5e92f](https://github.com/birdepy/birdepy_project/commit/bc5e92f2cb63bc9f73821dbbbf9539d15cf0c7e7)), closes [#64](https://github.com/birdepy/birdepy_project/issues/64)
+
+
+### Performance Improvements
+
+* added journal reference ([3d69ba9](https://github.com/birdepy/birdepy_project/commit/3d69ba9ab4e6c408a551a0094a461f606cece435))
+
+
+### BREAKING CHANGES
+
+* journal version
+
 ## [0.0.27](https://github.com/birdepy/birdepy_project/compare/v0.0.26...v0.0.27) (2023-08-15)
 
 
