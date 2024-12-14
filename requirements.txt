@@ -1,6 +1,6 @@
 numpy==1.25.2
 mpmath==1.2.1
 scipy==1.10.0
-matplotlib==3.6.3
+matplotlib==3.10.0
 gwr-inversion==1.0.1
 scikit-learn==1.2.1
