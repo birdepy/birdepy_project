@@ -248,10 +248,10 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     .. [3] Wolff, R. W. (1965). Problems of statistical inference for birth and
      death queuing models. Operations Research, 13(3), 343-357.
     """
-    # Convert data into the format of a list of lists
-    if type(t_data[0]) != list:
+    # Normalize a single path while retaining list, tuple, or array path collections.
+    if np.ndim(t_data[0]) == 0:
         t_data = [t_data]
-    if type(p_data[0]) != list:
+    if np.ndim(p_data[0]) == 0:
         p_data = [p_data]
 
     # Create a list containing inter-event (or "holding") times
@@ -290,18 +290,32 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     def pre_ll(param):
         ll_ = 0
         for idx_, state_ in enumerate(states_visited):
-            if b_rate(state_, param) > 0:
-                ll_ += np.log(b_rate(state_, param)) * upward_jump_counts[idx_]
-            if d_rate(state_, param) > 0:
-                ll_ += np.log(d_rate(state_, param)) * downward_jump_counts[idx_]
-            ll_ -= (b_rate(state_, param) + d_rate(state_, param)) * holding_t_data[idx_]
+            birth = b_rate(state_, param)
+            death = d_rate(state_, param)
+            if birth < 0 or death < 0 or not np.isfinite(birth + death):
+                return -np.inf
+            if upward_jump_counts[idx_] > 0:
+                if birth == 0:
+                    return -np.inf
+                ll_ += np.log(birth) * upward_jump_counts[idx_]
+            if downward_jump_counts[idx_] > 0:
+                if death == 0:
+                    return -np.inf
+                ll_ += np.log(death) * downward_jump_counts[idx_]
+            ll_ -= (birth + death) * holding_t_data[idx_]
         return ll_
 
     # Adjust the log-likelihood function to account for unknown parameters and
     # negate it so that the minimize function performs maximisation
     def error_fun(p_prop):
         param = ut.p_bld(p_prop, idx_known_p, known_p)
-        return -pre_ll(param)
+        value = pre_ll(param)
+        if np.isfinite(value):
+            return -value
+        # A finite penalty lets line searches recover from a zero-rate boundary.
+        # The reported likelihood below remains -inf for an impossible fit.
+        jumps = np.sum(upward_jump_counts + downward_jump_counts)
+        return -(jumps + 1) * np.log(np.finfo(float).tiny)
 
     # The actual log-likelihood is needed to determine the covariance
     def ll(p_prop):
@@ -310,17 +324,21 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
 
     # Obtain parameter estimates
     opt = ut.minimize_(error_fun, p0, p_bounds, con, opt_method, options)
+    opt.fun = -ll(opt.x)
+    if not np.isfinite(opt.fun):
+        opt.success = False
+        opt.message = "The fitted rates cannot produce the observed events."
+        return opt, 'Covariance matrix could not be determined.'
 
-    # Obtain covariance estimates
-    if p0.size > 1:
-        try:
-            cov = np.linalg.inv(-ut.Hessian(ll, opt.x, p_bounds))
-        except:
-            cov = 'Covariance matrix could not be determined.'
-    else:
-        try:
-            cov = -1/ut.Hessian(ll, opt.x, p_bounds)
-        except:
-            cov = 'Covariance matrix could not be determined.'
+    # A flat or nonconcave likelihood does not define a Gaussian covariance.
+    try:
+        information = -np.atleast_2d(ut.Hessian(ll, opt.x, p_bounds))
+        information = (information + information.T) / 2
+        if not np.all(np.isfinite(information)):
+            raise ValueError("Nonfinite observed information.")
+        np.linalg.cholesky(information)
+        cov = np.linalg.inv(information)
+    except (ValueError, np.linalg.LinAlgError):
+        cov = 'Covariance matrix could not be determined.'
 
     return opt, cov

@@ -3,8 +3,8 @@ import birdepy.utility as ut
 import birdepy.simulate as simulate
 from scipy.spatial.distance import euclidean
 from scipy.stats import multivariate_normal, norm
-from scipy.optimize import minimize, minimize_scalar
-import matplotlib.pyplot as plt
+from scipy.special import logsumexp
+from scipy.optimize import minimize
 
 
 def estimate_prior_pdf(p_bounds, con, rng):
@@ -35,41 +35,46 @@ def estimate_prior_pdf(p_bounds, con, rng):
     return 1 / ((successes / 10 ** 3) * np.prod(p_bounds[:, 1] - p_bounds[:, 0]))
 
 
+def _proposal_covariance(cov, p_bounds):
+    """Use the same nonsingular Gaussian kernel for sampling and weighting."""
+    widths = np.asarray(p_bounds)[:, 1] - np.asarray(p_bounds)[:, 0]
+    return 2 * np.atleast_2d(cov) + np.diag(widths ** 2 * 1e-12)
+
+
+def _importance_weights(sample, previous_sample, previous_weights, cov, p_bounds):
+    """Normalized prior/proposal ratios for a uniform prior on the allowed set."""
+    kernel = multivariate_normal(mean=np.zeros(sample.shape[1]),
+                                 cov=_proposal_covariance(cov, p_bounds))
+    log_previous_weights = np.log(previous_weights)
+    log_weights = np.array([
+        -logsumexp(log_previous_weights + kernel.logpdf(p - previous_sample))
+        for p in sample
+    ])
+    return np.exp(log_weights - logsumexp(log_weights))
+
+
+def _weighted_quantile(values, weights, q):
+    order = np.argsort(values)
+    cumulative = np.cumsum(np.asarray(weights)[order])
+    index = min(np.searchsorted(cumulative, q * cumulative[-1]), len(order) - 1)
+    return np.asarray(values)[order[index]]
+
+
 def param_sampler(previous_sample, k, weights, cov, p_bounds, con, rng):
-    cond2 = True
-    while cond2:
-        cond2 = False
-        # If there are no previous samples, sample a proposal satisfying the bounds
-        # using a uniform distribution. Otherwise sample a proposal according to the
-        # mechanism described in [3].
+    while True:
         if len(previous_sample) == 0:
             param_prop = (p_bounds[:, 1] - p_bounds[:, 0]) * \
                          rng.uniform(size=p_bounds.shape[0]) + p_bounds[:, 0]
         else:
-            cond1 = True
-            while cond1:
-                cond1 = False
-                index_mean = rng.choice(list(range(k)), p=np.divide(weights, np.sum(weights)))
-                mean = previous_sample[index_mean, :]
-                if p_bounds.shape[0] > 1:
-                    param_prop = rng.multivariate_normal(mean, 2 * cov)
-                else:
-                    param_prop = rng.normal(mean, 2 * cov)
-                for bnd_idx, bnd in enumerate(p_bounds):
-                    if param_prop[bnd_idx] > bnd[1] or param_prop[bnd_idx] < bnd[0]:
-                        cond1 = True
-        # Then check proposal also satisfies constraints:
-        if type(con) == dict:
-            # If there is one constraint specified
-            if con['fun'](param_prop) < 0:
-                cond2 = True
-        else:
-            # If there is strictly more than one or 0 constraints specified
-            for c in con:
-                if c['fun'](param_prop) < 0:
-                    cond2 = True
-                    break  # Leave for loop on first failure
-    return param_prop
+            index_mean = rng.choice(len(previous_sample), p=weights / np.sum(weights))
+            param_prop = rng.multivariate_normal(
+                previous_sample[index_mean], _proposal_covariance(cov, p_bounds))
+        if np.any(param_prop < p_bounds[:, 0]) or np.any(param_prop > p_bounds[:, 1]):
+            continue
+        constraints = [con] if isinstance(con, dict) else con
+        if any(np.any(c['fun'](param_prop) < 0) for c in constraints):
+            continue
+        return param_prop
 
 
 def simulated_data_maker(data, param_prop, idx_known_p, known_p, b_rate,
@@ -123,7 +128,7 @@ def basic_abc(data, previous_sample, weights, cov, eps_abc, distance, k,
 
 def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
                      eps_change, method, b_rate, d_rate, idx_known_p, known_p,
-                     p_bounds, con, tau, seed, display):
+                     p_bounds, con, tau, seed, display, return_weights=False):
     """Parameter estimation for discretely observed continuous-time
     birth-and-death processes using approximate Bayesian computation.
     See :ref:`here <Approximate Bayesian Computation>` for more information.
@@ -193,7 +198,8 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
 
     stat : string, optional
         Determines which statistic is used to summarize the posterior distribution.
-        Should be one of: 'mean' or 'median'. 
+        Should be one of: 'mean' or 'median'. Both use the normalized importance
+        weights of the final particle population, as does the returned covariance.
 
     Examples
     --------
@@ -244,6 +250,10 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
     """
     if distance is None:
         distance = euclidean
+    if k < 2 or max_its < 1:
+        raise ValueError("ABC requires at least two particles and one iteration.")
+    if stat not in ('mean', 'median'):
+        raise TypeError("Argument `stat` must be 'mean' or 'median'.")
 
     prior_pdf = estimate_prior_pdf(p_bounds, con, seed)
 
@@ -251,6 +261,7 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
     p_bounds = np.array(p_bounds)
 
     list_of_samples = []
+    list_of_weights = []
     param_sample = []
     weights = [1 / k] * k
     cov = []
@@ -267,7 +278,7 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
             break
         previous_eps = current_eps
         # First set the value of epsilon (the cut off for acceptance of parameter proposals)
-        if eps_abc == 'dynamic':
+        if isinstance(eps_abc, str) and eps_abc == 'dynamic':
             if iteration == 1:
                 # param_sample = np.empty((gam * k, p_bounds.shape[0]))
                 dist_samples = np.empty(gam * k)
@@ -281,7 +292,7 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
                     dist = distance(data_pairs[:, 0], data_pairs[:, 1])
                     # param_sample[idx, :] = param_prop
                     dist_samples[idx] = dist
-                indices_of_smallest_distances = np.argpartition(dist_samples, k)
+                indices_of_smallest_distances = np.argpartition(dist_samples, k - 1)
                 dist_samples = dist_samples[indices_of_smallest_distances[:k]]
                 # previous_sample = param_sample[indices_of_smallest_distances[:k], :]
                 current_eps = np.amax(dist_samples)
@@ -292,10 +303,10 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
                                    constraints=con)
                 else:
                     opt = minimize(
-                        lambda p: -norm.pdf(p, loc=mean[0], scale=np.sqrt(cov)) / prior_pdf,
+                        lambda p: -norm.pdf(p, loc=mean[0], scale=np.sqrt(cov[0, 0])) / prior_pdf,
                         mean[0], method='SLSQP', bounds=p_bounds)
-                q = -1 / opt.fun
-                current_eps = np.quantile(dist_samples, q)
+                q = float(np.clip(-1 / opt.fun, 0, 1))
+                current_eps = _weighted_quantile(dist_samples, weights, q)
             else:
                 if p_bounds.shape[0] > 1:
                     opt = minimize(
@@ -306,17 +317,24 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
                         x0=mean, method='SLSQP', bounds=p_bounds,
                         constraints=con)
                 else:
-                    opt = minimize(lambda p: -norm.pdf(p, loc=mean[0], scale=np.sqrt(cov)) /
+                    opt = minimize(lambda p: -norm.pdf(p, loc=mean[0], scale=np.sqrt(cov[0, 0])) /
                                              max(1e-30, norm.pdf(p, loc=previous_mean[0],
                                                                  scale=np.sqrt(
-                                                                     previous_cov))),
+                                                                     previous_cov[0, 0]))),
                                    mean[0], method='SLSQP', bounds=p_bounds)
-                q = -1 / opt.fun
-                current_eps = np.quantile(dist_samples, q)
+                q = float(np.clip(-1 / opt.fun, 0, 1))
+                current_eps = _weighted_quantile(dist_samples, weights, q)
         else:
             current_eps = eps_abc[iteration - 1]
-        if ((q > max_q and iteration >= 3) or
-                (100 * (previous_eps / current_eps - 1) < eps_change)):
+        if current_eps < 0 or np.isnan(current_eps):
+            raise ValueError("ABC thresholds must be nonnegative.")
+        if current_eps == previous_eps:
+            reduction = 0
+        elif current_eps == 0:
+            reduction = np.inf
+        else:
+            reduction = 100 * (previous_eps / current_eps - 1)
+        if iteration > 1 and ((q > max_q and iteration >= 3) or reduction < eps_change):
             break
         # Now run the basic ABC algorithm for this iteration
         previous_sample = param_sample
@@ -329,44 +347,19 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
         previous_weights = weights
         previous_cov = cov
         previous_mean = mean
-        # Determine weights for next iteration
+        # Importance weights must use the covariance that generated this population.
         if iteration == 1:
-            weights = [1 / k] * k
-            if p_bounds.shape[0] > 1:
-                cov = np.cov(param_sample, rowvar=False, aweights=previous_weights)
-            else:
-                cov = np.var(np.multiply(param_sample.T, previous_weights))
+            weights = np.full(k, 1 / k)
         else:
-            if p_bounds.shape[0] > 1:
-                cov = np.cov(param_sample, rowvar=False, aweights=previous_weights)
-                sd = np.sqrt(np.diag(cov))
-                weights = np.empty(k)
-                for i in range(k):
-                    temp = 0
-                    for j in range(k):
-                        temp += previous_weights[j] * \
-                                multivariate_normal.pdf(
-                                    np.divide(param_sample[i, :] - previous_sample[j, :], sd),
-                                    cov=np.eye(p_bounds.shape[0]))
-                    weights[i] = prior_pdf / temp
-            else:
-                cov = np.var(np.multiply(param_sample.T, previous_weights))
-                sd = np.sqrt(cov)
-                weights = np.empty(k)
-                for i in range(k):
-                    temp = 0
-                    for j in range(k):
-                        temp += previous_weights[j] * \
-                                norm.pdf((param_sample[i] -
-                                          previous_sample[j]) / sd)
-                    weights[i] = prior_pdf / temp
-        mean = np.mean(param_sample, axis=0)
+            weights = _importance_weights(param_sample, previous_sample,
+                                          previous_weights, previous_cov, p_bounds)
+        list_of_weights.append(weights.copy())
+        mean = np.average(param_sample, axis=0, weights=weights)
+        cov = np.atleast_2d(np.cov(param_sample, rowvar=False, aweights=weights, ddof=0))
     if stat == 'mean':
-        est = np.mean(param_sample, axis=0)
+        est = mean
     else:
-        est = np.median(param_sample, axis=0)
-    if p_bounds.shape[0] > 1:
-        cov = np.cov(param_sample, rowvar=False)
-    else:
-        cov = np.array([np.var(param_sample)])
-    return est, cov, list_of_samples
+        est = np.array([_weighted_quantile(column, weights, 0.5)
+                        for column in param_sample.T])
+    result = (est, cov, list_of_samples)
+    return result + (list_of_weights,) if return_weights else result

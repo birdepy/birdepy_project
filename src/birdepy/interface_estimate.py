@@ -109,7 +109,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         for more information). 
 
     se_type: string, optional
-        Should be one of: 'none' (default), 'simulated', or 'asymptotic'.
+        Should be one of: 'none', 'simulated', or 'asymptotic' (default).
         See :ref:`here <Confidence Regions>` for more information.
 
     display : bool, optional
@@ -130,6 +130,15 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         assumed distribution of the parameter estimate, `val` is the log-likelihood
         for 'framework' `dnm' and 'em', squared error for 'framework' `lse',
         `capacity` is the estimated carrying capacity.
+
+        A numeric `cov` is always a two-dimensional matrix, including when
+        estimating one parameter. For ABC, `p` and `cov` summarize the weighted
+        posterior population and `se` contains posterior standard deviations.
+        `samples` contains the accepted particles for each ABC iteration;
+        `sample_weights` contains their corresponding normalized importance
+        weights. Use both when computing additional posterior summaries.
+        For other frameworks, `sample_weights` has the same "Not applicable"
+        sentinel as `samples`.
 
     Examples
     --------
@@ -229,7 +238,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     # of a key word argument with key 'options', in this case the dictionary
     # must be extracted:
     if 'options' in options.keys():
-        options = options['options']
+        nested_options = options.pop('options')
+        options = {**nested_options, **options}
 
     # Convert the arguments of 'p0', 'known_p' and 'idx_known_p' into numpy arrays
     p0 = np.array(p0)
@@ -237,6 +247,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     idx_known_p = np.array(idx_known_p)
 
     # Augment the options dictionary with items used by the optimization routines later
+    options.setdefault('seed', seed)
     options = ut.add_options(options)
 
     # Set the random number generator
@@ -266,7 +277,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         for idx in range(len(p_data)):
             z_obs_min = np.minimum(z_obs_min, np.amin(p_data[idx]))
             z_obs_max = np.maximum(z_obs_max, np.amax(p_data[idx]))
-        obs_range = z_obs_max - z_obs_min
+        obs_range = max(1, z_obs_max - z_obs_min)
         z_trunc = [int(np.maximum(0, z_obs_min - 2 * obs_range)),
                    int(z_obs_max + 2 * obs_range)]
         options['z_trunc'] = z_trunc
@@ -296,7 +307,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         p_est = opt.x
         message = opt.message
         success = opt.success
-        err = opt.fun
+        err = -opt.fun
         iterations = 'Not applicable for `mle`. '
         accelerator = 'Not applicable for `mle`. '
         samples = 'Not applicable for `mle`. '
@@ -320,8 +331,10 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 options['k'] = k
             if 'eps_abc' in options.keys():
                 eps_abc = options['eps_abc']
-                if np.isscalar(eps_abc):
-                    eps_abc = [eps_abc]
+                if not isinstance(eps_abc, str):
+                    eps_abc = np.atleast_1d(eps_abc).tolist()
+                elif eps_abc != 'dynamic':
+                    raise ValueError("Argument `eps_abc` must be 'dynamic' or numeric thresholds.")
             else:
                 eps_abc = 'dynamic'
                 options['eps_abc'] = eps_abc
@@ -333,9 +346,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 else:
                     max_its = len(eps_abc)
                 options['max_its'] = max_its
-            if max_its != len(eps_abc) and eps_abc != 'dynamic':
-                raise ValueError("Length of argument `abc_eps` "
-                                 "does not match argument `its`.")
+            if eps_abc != 'dynamic' and max_its != len(eps_abc):
+                raise ValueError("Length of argument `eps_abc` "
+                                 "does not match argument `max_its`.")
             if 'max_q' in options.keys():
                 max_q = options['max_q']
             else:
@@ -365,8 +378,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             else:
                 stat = 'mean'
                 options['stat'] = stat
-            if stat not in ['mean', 'median']:
-                raise TypeError("Argument of 'stat' has an unknown value.")
             if 'gam' in options.keys():
                 gam = options['gam']
             else:
@@ -378,11 +389,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 eps_change = 5
                 options['eps_change'] = eps_change
             # Obtain estimate, associated covariance matrix, and accepted samples
-            p_est, cov, samples = \
+            p_est, cov, samples, sample_weights = \
                 discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its,
                                  max_q, eps_change, method, b_rate, d_rate,
                                  idx_known_p, known_p, p_bounds, con, tau, rng,
-                                 display)
+                                 display, return_weights=True)
 
             message = 'Not applicable for `abc`.'
             success = 'Not applicable for `abc`.'
@@ -518,6 +529,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                          "be one of: 'discrete' or 'continuous'.")
 
     # Prepare for plotting
+    p_est = np.asarray(p_est)
+    if not isinstance(cov, str):
+        cov = np.atleast_2d(cov)
     if 'xlabel' in options.keys():
         xlabel = options['xlabel']
     else:
@@ -538,10 +552,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         else:
             # For frameworks 'abc', 'dnm' and 'em', use cov value computed above
             try:
-                if cov.shape[0] == 1:
-                    se = list(np.sqrt(np.diag(cov))[0])
-                else:
-                    se = list(np.sqrt(np.diag(cov)))
+                if not np.all(np.isfinite(cov)) or np.any(np.diag(cov) < 0):
+                    raise ValueError("Covariance has nonfinite or negative variances.")
+                se = np.sqrt(np.diag(cov)).tolist()
             except:
                 se = 'Error computing standard errors. Covariance matrix may have' \
                      'negative diagonal entries.'
@@ -549,10 +562,15 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 ut.confidence_region(mean=p_est, cov=cov, obs=None, se_type=se_type, xlabel=xlabel,
                                      ylabel=ylabel, export=export)
     elif se_type == 'simulated':
+        if framework == 'abc':
+            raise ValueError("ABC already returns posterior uncertainty; use "
+                             "se_type='asymptotic' or 'none'.")
         if 'num_samples' in options.keys():
             num_samples = options['num_samples']
         else:
             num_samples = 100
+        if num_samples < 2:
+            raise ValueError("At least two bootstrap samples are required.")
 
         # Augment estimate of unknown parameters with known parameters
         param = ut.p_bld(p_est, idx_known_p, known_p)
@@ -564,61 +582,62 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         bootstrap_samples = np.zeros((num_samples, p0.size))
         for idx in range(num_samples):
             if scheme == 'continuous':
-                if type(t_data[0]) == list:
-                    t_data_temp = []
-                    p_data_temp = []
-                    for idx in t_data:
-                        times, pops = simulate.continuous(p_est,
-                                                          model,
-                                                          p_data[idx][0],
-                                                          model,
-                                                          t_data[idx][-1],
-                                                          seed=rng)
-                        t_data_temp.append(times)
-                        p_data_temp.append(pops)
-                else:
-                    t_data_temp, p_data_temp = simulate.continuous(
-                        p_est, model, p_data[idx][0], t_data[idx][-1])
+                time_paths = [t_data] if np.ndim(t_data[0]) == 0 else t_data
+                pop_paths = [p_data] if np.ndim(p_data[0]) == 0 else p_data
+                t_data_temp, p_data_temp = [], []
+                for times, pops in zip(time_paths, pop_paths):
+                    horizon = times[-1] - times[0]
+                    jump_times, pop_sizes = simulate.continuous(
+                        param, model, pops[0], horizon, seed=rng,
+                        b_rate=b_rate, d_rate=d_rate)
+                    # Include the final event-free holding time in the likelihood.
+                    if jump_times[-1] < horizon:
+                        jump_times.append(horizon)
+                        pop_sizes.append(pop_sizes[-1])
+                    t_data_temp.append(jump_times)
+                    p_data_temp.append(pop_sizes)
                 bootstrap_samples[idx, :] = continuous_est_dnm(
                     t_data_temp, p_data_temp, p0, b_rate, d_rate, p_bounds, con,
-                    known_p, idx_known_p, opt_method, options)
+                    known_p, idx_known_p, opt_method, options)[0].x
             else:  # observation scheme is discrete
                 temp_data = {}
                 for i in data:
                     for _ in range(data[i]):
                         new_zt = simulate.discrete(param, model,
                                                    i[0], [0, i[2]], k=1,
-                                                   seed=rng)[1]
+                                                   seed=rng, b_rate=b_rate,
+                                                   d_rate=d_rate)[1]
                         new_point = (i[0], new_zt, i[2])
                         if new_point in temp_data:
                             temp_data[new_point] += 1
                         else:
                             temp_data[new_point] = 1
+                # Simulated endpoints can lie beyond the original truncation.
+                endpoints = [z for i in temp_data for z in i[:2]]
+                bootstrap_trunc = [min(z_trunc[0], max(0, min(endpoints) - 1)),
+                                   max(z_trunc[1], max(endpoints) + 1)]
                 if framework == 'dnm':
                     bootstrap_samples[idx, :] = discrete_est_dnm(
-                        temp_data, likelihood, model, z_trunc, idx_known_p,
+                        temp_data, likelihood, model, bootstrap_trunc, idx_known_p,
                         known_p, p_est, p_bounds, con, opt_method, options)[0].x
                 elif framework == 'lse':
                     bootstrap_samples[idx, :] = discrete_est_lse(
-                        temp_data, squares, model, b_rate, d_rate, z_trunc,
+                        temp_data, squares, model, b_rate, d_rate, bootstrap_trunc,
                         idx_known_p, known_p, p_est, p_bounds, con, opt_method,
                         options).x
                 else:  # framework is 'em'
                     bootstrap_samples[idx, :] = discrete_est_em(
-                        data, p_est, technique, accelerator, likelihood, p_bounds,
+                        temp_data, p_est, technique, accelerator, likelihood, p_bounds,
                         con, known_p, idx_known_p, model, b_rate, d_rate,
-                        z_trunc, max_it, i_tol, j_tol, h_tol, display,
+                        bootstrap_trunc, max_it, i_tol, j_tol, h_tol, display,
                         opt_method, options)[0]
             if display:
                 print('Boostrap confidence region progress:',
                       100 * (idx + 1) / num_samples, '%')
-            cov = np.cov(bootstrap_samples, rowvar=False)
+        cov = np.atleast_2d(np.cov(bootstrap_samples, rowvar=False))
         try:
             # This control structure ensures standard errors are returned in the correct format
-            if cov.shape[0] == 1:
-                se = list(np.sqrt(np.diag(cov))[0])
-            else:
-                se = list(np.sqrt(np.diag(cov)))
+            se = np.sqrt(np.diag(cov)).tolist()
         except:
             se = 'Error computing standard errors. Covariance matrix may have ' \
                  'negative diagonal entries.'
@@ -648,9 +667,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     else:
         capacity = "Functionality not available for custom models."
 
-    return EstimationOutput(p=list(p_est), capacity=capacity, val=err, cov=cov,
+    if framework != 'abc':
+        sample_weights = samples
+    result = EstimationOutput(p=list(p_est), capacity=capacity, val=err, cov=cov,
                             se=se, compute_time=time.time() - tic,
                             framework=framework, message=message,
                             success=success, iterations=iterations,
                             method=method, p0=list(p0),
-                            scheme=scheme, samples=samples, model=model)
+                            scheme=scheme, samples=samples,
+                            sample_weights=sample_weights, model=model)
+    return result

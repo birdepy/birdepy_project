@@ -537,7 +537,7 @@ def discrete_moran(out, rng_states, p, z0, time, survival):
                        / p[4]
 
     def d_rate(z):
-        return z * (p[2] * (p[4] - z) * (1 - p[3]) / p[4] +
+        return z * (p[1] * (p[4] - z) * (1 - p[3]) / p[4] +
                             p[0] * z * p[2] / p[4]) \
                        / p[4]
 

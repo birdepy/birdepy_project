@@ -80,7 +80,8 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         # Determine the associated 'R' matrix of discrete time transitions at Erlang distributed
         # epochs
-        r_mat = (k / t) * np.linalg.inv((k / t) * np.eye(num_states) - q_mat)
+        r_mat = np.linalg.solve(np.eye(num_states) - (t / k) * q_mat,
+                                np.eye(num_states))
         # Take k Erlang distributed epochs so the considered time converges to the requested t
         # with low variance
         p_mat = np.linalg.matrix_power(r_mat, k)
@@ -96,7 +97,8 @@ def probability_Erlang(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
         for idx in range(t.size):
             # Determine the associated 'R' matrix of discrete time transitions at Erlang distributed
             # epochs
-            r_mat = (k / t[idx]) * np.linalg.inv((k / t[idx]) * np.eye(num_states) - q_mat)
+            r_mat = np.linalg.solve(np.eye(num_states) - (t[idx] / k) * q_mat,
+                                    np.eye(num_states))
             # Take k Erlang distributed epochs so the considered time converges to the requested t
             # with low variance
             p_mat = np.linalg.matrix_power(r_mat, k)

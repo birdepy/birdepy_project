@@ -193,7 +193,9 @@ def data_sort_2(data):
         if np.around(i[2], 8) not in sorted_data:
             sorted_data[np.around(i[2], 8)] = {(i[0], i[1]): data[i]}
         else:
-            sorted_data[np.around(i[2], 8)][(i[0], i[1])] = data[i]
+            transitions = sorted_data[np.around(i[2], 8)]
+            pair = (i[0], i[1])
+            transitions[pair] = transitions.get(pair, 0) + data[i]
     return sorted_data
 
 
@@ -255,7 +257,7 @@ def higher_death(model):
         return lambda z, p: p[1] * z
     elif model == "Moran":
         return lambda z, p: (z <= p[4]) * (
-            z * (p[2] * (p[4] - z) * (1 - p[3]) / p[4] + p[0] * z * p[2] / p[4]) / p[4]
+            z * (p[1] * (p[4] - z) * (1 - p[3]) / p[4] + p[0] * z * p[2] / p[4]) / p[4]
         )
     elif model == "M/M/1":
         return lambda z, p: (z > 0) * p[1]
@@ -284,19 +286,21 @@ def higher_h_fun(model):
         )
     elif model == "Hassell":
         return (
-            lambda z, p: (p[0] * (1 + p[2] * z - p[3] * z)) / (1 + (p[2] * z)) ** p[3]
+            lambda z, p: p[0] * (1 + p[2] * z * (1 - p[3]))
+            / (1 + p[2] * z) ** (p[3] + 1)
             - p[1]
         )
     elif model == "MS-S":
         return (
             lambda z, p: (p[0] * (1 + (p[2] * z) ** p[3] * (1 - p[3])))
             / (1 + (p[2] * z) ** p[3]) ** 2
+            - p[1]
         )
     elif model == "Moran":
         return (
             lambda z, p: (
-                z * p[0] * (p[4] * (1 - p[2]) - z)
-                + p[1] * (z - [4]) * (z - p[4] * p[3])
+                p[0] * (p[4] * (1 - p[2]) - 2 * z)
+                + p[1] * (2 * z - p[4] * (1 + p[3]))
             )
             / p[4] ** 2
         )
@@ -381,8 +385,12 @@ def q_mat_bld(z_min, z_max, p, b_rate, d_rate):
     population-size-dependent birth-and-death process.
     """
     num_states = int(z_max - z_min + 1)
+    if num_states < 1:
+        raise ValueError("The upper truncation bound must not be below the lower bound.")
     states = np.arange(z_min, z_max + 1, 1)
     q_mat = np.zeros((num_states, num_states))
+    if num_states == 1:
+        return q_mat
     q_mat[-1, -1] = -d_rate(z_max, p)
     q_mat[-1, -2] = d_rate(z_max, p)
     q_mat[0, 0] = -b_rate(z_min, p)
@@ -400,6 +408,7 @@ def p_bld(p_prop, idx_known_p, known_p):
     Augments parameters 'p_prop' with parameters 'known_p'
     to form a complete vector of parameters.
     """
+    p_prop = np.asarray(p_prop)
     known_p = np.array(known_p)
     p_size = known_p.size + p_prop.size
     idx_known_p = list(idx_known_p)
@@ -407,7 +416,7 @@ def p_bld(p_prop, idx_known_p, known_p):
         raise TypeError(
             "Argument 'idx_known_p' and argument 'known_p' must" " be the same size."
         )
-    idx_unknown_p = list(set(range(p_size)) - set(idx_known_p))
+    idx_unknown_p = sorted(set(range(p_size)) - set(idx_known_p))
     p = np.empty(p_size)
     p[idx_known_p] = known_p
     p[idx_unknown_p] = p_prop

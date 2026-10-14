@@ -1,33 +1,74 @@
 import numpy as np
+import warnings
 import birdepy.utility as ut
 from scipy.stats import poisson
 
 
-def p_mat_bld_uniform(q_mat, t, _k, num_states):
+def _poisson_cutoff(mean, log_tolerance):
+    """Smallest cutoff meeting the tail bound, including tiny tail budgets."""
+    lower, upper = -1, max(1, int(np.ceil(mean)))
+    while poisson.logsf(upper, mean) > log_tolerance:
+        lower, upper = upper, 2 * upper
+    while upper - lower > 1:
+        midpoint = (lower + upper) // 2
+        if poisson.logsf(midpoint, mean) > log_tolerance:
+            lower = midpoint
+        else:
+            upper = midpoint
+    return upper
+
+
+def p_mat_bld_uniform(q_mat, t, _k, num_states, tol=1e-12):
     """
     Builds and returns the discrete time Markov chain utilized by
     the uniformization method.
     """
     m = np.amax(np.absolute(np.diag(q_mat)))
+    t = float(np.asarray(t).reshape(-1)[0])
+    if not np.isfinite(t) or t < 0:
+        raise ValueError("Elapsed time must be finite and nonnegative.")
+    if not 0 < tol < 1:
+        raise ValueError("The uniformization tolerance must lie between zero and one.")
+    if _k is not None and (not isinstance(_k, (int, np.integer)) or _k < 0):
+        raise ValueError("Argument `k` must be a nonnegative integer or None.")
+    if m == 0 or t == 0:
+        return np.eye(num_states)
+    mean = m * t
+    if not np.isfinite(mean):
+        raise ValueError("The uniformization rate times elapsed time must be finite.")
+    squarings = 0
+    if _k is None:
+        # Uniformize over a shorter interval, then use the semigroup property.
+        # A per-interval tail of tol / 2**s bounds the total omitted mass by tol.
+        if mean > 16:
+            squarings = int(np.ceil(np.log2(mean / 16)))
+            mean = np.ldexp(mean, -squarings)
+        _k = _poisson_cutoff(mean, np.log(tol) - squarings * np.log(2))
+    elif poisson.sf(_k, mean) > tol:
+        warnings.warn("The uniformization cutoff omits significant probability mass; "
+                      "increase k or use k=None for automatic truncation.",
+                      RuntimeWarning)
     a_mat = np.divide(q_mat, m) + np.eye(num_states)
     w = np.eye(num_states)
-    poisson_terms = poisson.pmf(range(_k + 1), m * t)
+    poisson_terms = poisson.pmf(range(_k + 1), mean)
     p_mat = np.multiply(w, poisson_terms[0])
     for idx in np.arange(1, _k + 1, 1):
         w = np.matmul(w, a_mat)
         p_mat += np.multiply(w, poisson_terms[idx])
+    for _ in range(squarings):
+        p_mat = np.matmul(p_mat, p_mat)
 
     return p_mat
 
 
-def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
+def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k, tol=1e-12):
     """Transition probabilities for continuous-time birth-and-death processes
     using the *uniformization* method.
 
     To use this function call :func:`birdepy.probability` with `method` set to
     'uniform'::
 
-        birdepy.probability(z0, zt, t, param, method='uniform', k=1000, z_trunc=())
+        birdepy.probability(z0, zt, t, param, method='uniform', k=None, z_trunc=())
 
     The parameters associated with this method (listed below) can be
     accessed using kwargs in :func:`birdepy.probability()`. See documentation
@@ -41,8 +82,16 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
         ``z_trunc=[z_min, z_max]`` where ``z_min=max(0, min(z0, zt) - 100)``
         and ``z_max=max(z0, zt) + 100``.
 
-    k : int, optional
-        Number of terms to include in approximation to probability.
+    k : int or None, optional
+        Largest Poisson-series index to include. By default (None), choose
+        the cutoff to bound the omitted Poisson tail by `uniform_tol`, using
+        shorter intervals and repeated squaring when the rate-time product
+        is large. Each interval receives a share of the total tail budget.
+        An explicit cutoff is respected, with a warning if it is insufficient.
+
+    uniform_tol : float, optional
+        Upper bound on the omitted Poisson tail (default 1e-12). This does
+        not control the separate error from state-space truncation.
 
     Examples
     --------
@@ -96,7 +145,7 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
     # If more than one time is requested it is easiest to divert into a different code block
     if t.size == 1:
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
-        p_mat = p_mat_bld_uniform(q_mat, t, k, num_states)
+        p_mat = p_mat_bld_uniform(q_mat, t, k, num_states, tol)
         output = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),
                               np.array(zt - z_min, dtype=np.int32))]
     else:
@@ -106,7 +155,7 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k):
         q_mat = ut.q_mat_bld(z_min, z_max, param, b_rate, d_rate)
         for idx in range(t.size):
             # The transition probabilities follow from uniformization
-            p_mat = p_mat_bld_uniform(q_mat, t[idx], k, num_states)
+            p_mat = p_mat_bld_uniform(q_mat, t[idx], k, num_states, tol)
             # Fill in the output according to requested initial and final states (although many more
             # probabilities are actually computed)
             output[idx, :, :] = p_mat[np.ix_(np.array(z0 - z_min, dtype=np.int32),

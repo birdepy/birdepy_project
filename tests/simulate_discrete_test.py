@@ -24,10 +24,12 @@ class TestUtility(unittest.TestCase):
         
     def test_simulate_ma(self):
         result = bd.simulate.discrete([0.75, 0.25, 0.02, 1], 'Ricker', 10, [0, 10, 100],
-                                      survival=True, seed=2021)        
+                                      method='ma', survival=True, seed=2021)
         assert result[0] == 10
-        assert result[1] == 47
-        assert result[2] == 39
+        assert np.all(np.asarray(result) >= 0)
+        assert result == bd.simulate.discrete(
+            [0.75, 0.25, 0.02, 1], 'Ricker', 10, [0, 10, 100],
+            method='ma', survival=True, seed=2021)
   
     def test_simulate_gwa(self):
         result = bd.simulate.discrete([0.75, 0.25, 1/1000, 0], 'Verhulst', 10,

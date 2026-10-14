@@ -135,7 +135,7 @@ def probability_gwa(z0, zt, t, param, b_rate, d_rate, anchor):
                             "Argument 'anchor' has an unknown value. Should be one of 'midpoint'"
                             " 'initial', 'terminal', 'max' or 'min'.")
                     # Determine the transition probability of the linear approximation
-                    pr = ut.p_lin(_z0, _zt, lam, mu, t[0])
+                    pr = ut.p_lin(_z0, _zt, lam, mu, _t)
                     # Warn if a probability outside [0,1] is computed
                     if not 0 <= pr <= 1.0:
                         warnings.warn("Probability not in [0, 1] computed, "

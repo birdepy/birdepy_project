@@ -18,7 +18,7 @@ def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng):
         while True:
             param_prop = rng.multivariate_normal(param, cov)
             cond = True
-            for bd_idx, bd in enumerate(p_bounds):
+            for bd_idx, bd in enumerate(p_bounds if p_bounds is not None else ()):
                 if param_prop[bd_idx] > bd[1] or \
                         param_prop[bd_idx] < bd[0]:
                     cond = False
@@ -55,6 +55,8 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
             z0_ = z0()
         else:
             z0_ = z0
+        if shift_times[-1] == 0:
+            return np.full(len(shift_times), z0_, dtype=float)
         for solver_method in solver_methods:
             fluid_path = solve_ivp(
                 lambda t, z: b_rate(z, param) - d_rate(z, param),
@@ -65,6 +67,8 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
             if fluid_path.success:
                 forecasted_mean = fluid_path.y[0]
                 break
+        else:
+            raise RuntimeError("Unable to solve the forecast mean trajectory.")
     elif method in ['exact', 'ea', 'ma', 'gwa']:
         forecasted_mean = np.zeros(len(shift_times))
         for idx in range(n):
@@ -75,6 +79,8 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
                                                  method=method,
                                                  seed=rng)
         forecasted_mean = np.divide(forecasted_mean, n)
+    else:
+        raise ValueError("Unknown method for computing a forecast mean.")
     return forecasted_mean
 
 
@@ -273,14 +279,14 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     """
     # Convert times into a numpy array
     times = np.array(times)
+    if (times.ndim != 1 or times.size == 0 or not np.all(np.isfinite(times))
+            or np.any(np.diff(times) <= 0)):
+        raise ValueError("Forecast times must be a nonempty, increasing finite sequence.")
 
     # Prepare for plotting
     if type(xticks) == str:
         xticks = times
-    if type(xticks) is list:
-        xticks = times
-    else:
-        xticks = np.array(xticks)
+    xticks = np.array(xticks)
     if ylabel == 'default':
         if interval == 'confidence':
             ylabel = '$\mathbb{E} Z(t)$'
@@ -293,15 +299,16 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     elif interval == 'prediction' and method is None:
         method = 'gwa'
     elif interval == 'prediction' and method == 'fm':
-        TypeError("Argument of `method` equal 'fm' not possible when argument "
-                  "of `interval` equals 'prediction'.")
+        raise TypeError("Argument of `method` equal 'fm' not possible when argument "
+                        "of `interval` equals 'prediction'.")
 
     # Shift the times so that the earliest observation is time 0
     shift_times = times - times[0]
 
     # Covariance matrix must be an array, convert to array if it is a float or int
-    if type(cov) == float or type(cov) == int:
-        cov = [[cov]]
+    if cov is not None:
+        cov = np.atleast_2d(cov)
+    full_param = ut.p_bld(np.atleast_1d(param), idx_known_p, known_p)
 
     # Define the model-dependent birth and death rate functions
     if model == 'custom':
@@ -322,6 +329,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
 
     # Initialise a plot
     fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
+    samples = None
 
     # A difference procedure needs to be followed depending on whether a
     # 'confidence' or 'prediction' forecast is requested
@@ -333,7 +341,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
                           "parameter values, however since argument `cov` has value "
                           "None no uncertainty in parameter values has been specified.",
                           category=RuntimeWarning)
-            forecast_ = mean_curve(param, b_rate, d_rate, method, z0,
+            forecast_ = mean_curve(full_param, b_rate, d_rate, method, z0,
                                    solver_methods, shift_times, n, rng)
             ax1.plot(times, forecast_, color='k')
         else:
@@ -358,7 +366,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         if cov is None:
             for idx in range(k):
                 # Generate sample path of process using estimated parameters
-                samples[idx, :] = simulate.discrete(param, 'custom', z0,
+                samples[idx, :] = simulate.discrete(full_param, 'custom', z0,
                                                     shift_times,
                                                     b_rate=b_rate,
                                                     d_rate=d_rate, k=1,
@@ -382,23 +390,18 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         raise TypeError("Argument 'interval' has an unknown value.")
 
     # Determine number of partitions to split the samples into
-    m = len(percentiles)
-    # Determine percentile curves
-    SDist = np.zeros((times.shape[0], m))
-    for i in range(m):
-        for t in range(times.shape[0]):
-            SDist[t, i] = np.percentile(samples[:, t], percentiles[i])
-    half = int(np.floor((m - 1) / 2))
-    # Plot the results
-    fig.canvas.draw()
-    ax1.plot(times, SDist[:, half], color='k')
-    for i in range(half-1):
-        ax1.fill_between(times, SDist[:, i+1], SDist[:, -(i + 2)], color=colormap((i+1) / half),
-                         label=labels[i])
+    if samples is not None:
+        m = len(percentiles)
+        SDist = np.percentile(samples, percentiles, axis=0).T
+        half = int(np.floor((m - 1) / 2))
+        ax1.plot(times, SDist[:, half], color='k')
+        for i in range(half-1):
+            ax1.fill_between(times, SDist[:, i+1], SDist[:, -(i + 2)],
+                             color=colormap((i+1) / half), label=labels[i])
+        ax1.legend(loc="upper left")
     ax1.tick_params(labelsize=11.5)
     ax1.set_xlabel(xlabel, fontsize=14)
     ax1.set_xticks(xticks)
-    ax1.legend(loc="upper left")
     labels = [f'{t}' for t in xticks]
     ax1.set_xticklabels(labels, rotation=rotation)
     ax1.set_ylabel(ylabel, fontsize=14)
