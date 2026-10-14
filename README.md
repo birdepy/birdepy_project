@@ -10,7 +10,8 @@ Hautphenne S, Patch B (2024). "Birth-and-Death Processes in Python: The BirDePy 
 
 ## Numerical reliability
 
-See the [changelog](CHANGELOG.md) for released changes.
+See [GitHub Releases](https://github.com/birdepy/birdepy_project/releases) for release notes.
+The [changelog](CHANGELOG.md) retains earlier release history.
 Corrections to simulation, estimation, and forecasting
 can change results from earlier versions, including when using the same random seed.
 
@@ -60,9 +61,46 @@ From the repository root, using Python 3.10 or 3.11 in a virtual environment:
 
 ```sh
 python -m pip install -r requirements.txt -r requirements.dev.txt
-MPLBACKEND=Agg python -m pytest
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 MPLBACKEND=Agg python -m pytest
 ```
 
 Regression tests include analytic likelihood and posterior checks, simulation
 moments, agreement between transition-probability methods, and reproducible
 bootstrap estimates. The CPU suite does not validate CUDA execution.
+
+CI checks this pinned baseline and builds a source distribution and wheel for
+fresh-install tests on Python 3.10–3.15 (allowing a 3.15 prerelease until final
+builds are available). The installed-package tests run outside the checkout so
+that imports use the wheel, including its bundled Laplace-inversion data.
+`pyproject.toml` declares the tested dependency minimums; newer compatible
+versions are selected by pip for each Python version. `scikit-learn` is not used
+by BirDePy and is no longer installed for tests.
+
+## Dependency maintenance and releases
+
+Renovate groups compatible Python updates and filters out releases that require
+Python newer than 3.10 for the baseline. Major upgrades remain separate PRs.
+Changing the Python support floor or CI interpreter matrix is a maintainer
+decision, so Renovate does not automatically replace those interpreter versions.
+
+The required `test` check succeeds only after both Python matrices and the
+release-tooling check pass. Releases on configured release branches run the same
+checks before publishing. Release tooling uses Node 24, `npm ci`, and the
+repository's built-in GitHub token. The `PYPI_TOKEN` secret is still required.
+Release notes are published on GitHub; releases do not push generated changelog
+commits to the protected branch.
+
+To validate release tooling locally, with Node 24.10 or newer and a Python
+virtual environment active:
+
+```sh
+python -m pip install build setuptools wheel twine tomlkit
+npm ci
+npm run check:release
+```
+
+This check uses a temporary local Git remote, previews a breaking-change release,
+and builds and validates versioned Python distributions. It does not publish,
+use release credentials, or modify the working tree. Authentication with GitHub
+and PyPI is verified by the actual release job. The source version `0.0.0` is a
+placeholder; semantic-release sets the release version before building.

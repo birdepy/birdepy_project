@@ -12,10 +12,8 @@
   },
   "homepage": "https://github.com/birdepy/birdepy_project#readme",
   "devDependencies": {
-    "semantic-release": "^20.1.0",
-    "semantic-release-pypi": "^2.5.0",
-    "@semantic-release/changelog": "^6.0.2",
-    "@semantic-release/git": "^10.0.1"
+    "semantic-release": "^25.0.9",
+    "semantic-release-pypi": "^5.3.0"
   },
   "release": {
     "branches": [
@@ -26,33 +24,39 @@
       "next-major",
       {
         "name": "beta",
-        "prerelease": "true"
+        "prerelease": true
       },
       {
         "name": "alpha",
-        "prerelease": "true"
+        "prerelease": true
       }
     ],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
       [
-        "@semantic-release/changelog",
+        "semantic-release-pypi",
         {
-          "changelogFile": "CHANGELOG.md"
+          "envDir": false,
+          "installDeps": false
         }
       ],
       [
-        "@semantic-release/git",
+        "@semantic-release/github",
         {
-          "assets": [
-            "CHANGELOG.md"
-          ]
+          "successComment": false,
+          "failComment": false,
+          "failTitle": false,
+          "releasedLabels": false
         }
-      ],
-      "@semantic-release/git",
-      "semantic-release-pypi",
-      "@semantic-release/github"
+      ]
     ]
+  },
+  "private": true,
+  "engines": {
+    "node": ">=24.10.0"
+  },
+  "scripts": {
+    "check:release": "node .github/scripts/check-release.mjs"
   }
 }
