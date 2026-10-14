@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+from birdepy.models import get_model
 from birdepy.interface_abc import discrete_est_abc
 from birdepy.interface_dnm import discrete_est_dnm
 from birdepy.interface_dnm import continuous_est_dnm
@@ -132,7 +133,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         `capacity` is the estimated carrying capacity.
 
         A numeric `cov` is always a two-dimensional matrix, including when
-        estimating one parameter. For ABC, `p` and `cov` summarize the weighted
+        estimating one parameter. DNM and EM return the string
+        ``"Covariance matrix could not be determined."`` for singular,
+        nonfinite, or non-positive-definite observed information. They no longer
+        return nonfinite covariance arrays for those fits. Successful internal
+        covariance calculations also have shape ``(n, n)`` for one parameter.
+        For ABC, `p` and `cov` summarize the weighted
         posterior population and `se` contains posterior standard deviations.
         `samples` contains the accepted particles for each ABC iteration;
         `sample_weights` contains their corresponding normalized importance
@@ -598,7 +604,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                     p_data_temp.append(pop_sizes)
                 bootstrap_samples[idx, :] = continuous_est_dnm(
                     t_data_temp, p_data_temp, p0, b_rate, d_rate, p_bounds, con,
-                    known_p, idx_known_p, opt_method, options)[0].x
+                    known_p, idx_known_p, opt_method, options, compute_cov=False)[0].x
             else:  # observation scheme is discrete
                 temp_data = {}
                 for i in data:
@@ -619,7 +625,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 if framework == 'dnm':
                     bootstrap_samples[idx, :] = discrete_est_dnm(
                         temp_data, likelihood, model, bootstrap_trunc, idx_known_p,
-                        known_p, p_est, p_bounds, con, opt_method, options)[0].x
+                        known_p, p_est, p_bounds, con, opt_method, options,
+                        compute_cov=False)[0].x
                 elif framework == 'lse':
                     bootstrap_samples[idx, :] = discrete_est_lse(
                         temp_data, squares, model, b_rate, d_rate, bootstrap_trunc,
@@ -630,7 +637,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                         temp_data, p_est, technique, accelerator, likelihood, p_bounds,
                         con, known_p, idx_known_p, model, b_rate, d_rate,
                         bootstrap_trunc, max_it, i_tol, j_tol, h_tol, display,
-                        opt_method, options)[0]
+                        opt_method, options, compute_cov=False)[0]
             if display:
                 print('Boostrap confidence region progress:',
                       100 * (idx + 1) / num_samples, '%')
@@ -659,11 +666,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     # Determine capacity attribute of the output
     if model != 'custom':
-        # Build a function that returns fixed points of fluid model
-        capacity_finder = ut.higher_zf_bld(model)
-        # Use function to find fixed points in terms of estimate of unknown parameters augmented
-        # with known parameters
-        capacity = np.ceil(capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p)))
+        capacity_finder = get_model(model).fixed_points
+        if capacity_finder is None:
+            capacity = "Functionality not available for this model."
+        else:
+            capacity = np.ceil(capacity_finder(ut.p_bld(p_est, idx_known_p, known_p)))
     else:
         capacity = "Functionality not available for custom models."
 

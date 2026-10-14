@@ -86,7 +86,8 @@ def mu_product(i, j, param, d_rate):
     general birth–death processes with applications in ecology, genetics, and
     evolution. Journal of mathematical biology, 65(3), 553-580.
     """
-    return np.prod(d_rate(np.arange(j + 1, i + 1, 1), param))
+    states = np.arange(j + 1, i + 1, 1)
+    return np.prod(np.broadcast_to(d_rate(states, param), states.shape))
 
 
 def lam_product(i, j, param, b_rate):
@@ -98,7 +99,8 @@ def lam_product(i, j, param, b_rate):
     general birth–death processes with applications in ecology, genetics, and
     evolution. Journal of mathematical biology, 65(3), 553-580.
     """
-    return np.prod(b_rate(np.arange(i, j, 1), param))
+    states = np.arange(i, j, 1)
+    return np.prod(np.broadcast_to(b_rate(states, param), states.shape))
 
 
 def mod_lentz_00_mp(fun, eps):

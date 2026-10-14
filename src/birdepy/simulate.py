@@ -26,6 +26,7 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
             - 'Ricker'
             - 'Hassell'
             - 'MS-S'
+            - 'Moran'
             - 'pure-birth'
             - 'pure-death'
             - 'Poisson'
@@ -403,9 +404,9 @@ def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,
 
             - 'Verhulst'
             - 'Ricker'
-            - 'Beverton-Holt'
             - 'Hassell'
             - 'MS-S'
+            - 'Moran'
             - 'pure-birth'
             - 'pure-death'
             - 'Poisson'

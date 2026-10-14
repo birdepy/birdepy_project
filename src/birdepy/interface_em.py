@@ -5,13 +5,14 @@ import birdepy.em_qn1 as em_qn1
 import birdepy.em_qn2 as em_qn2
 import birdepy.em_cg as em_cg
 import birdepy.utility as ut
+from birdepy.covariance import UNAVAILABLE, safe_from_hessian
 from birdepy.interface_dnm import bld_ll_fun
 
 
 def discrete_est_em(data, p0, technique, accelerator, likelihood,
                     p_bounds, con, known_p, idx_known_p, model, b_rate, d_rate,
                     z_trunc, max_it, i_tol, j_tol, h_tol, display, opt_method,
-                    options):
+                    options, compute_cov=True):
     """Parameter estimation for discretely observed continuous-time
     birth-and-death processes using the expectation maximization algorithm.
     See :ref:`here <Expectation Maximization>` for more information.
@@ -94,6 +95,11 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
     h_tol : scalar, optional
         States with expected holding time greater than `h_tol` are included in
         E steps.
+
+    compute_cov : bool, optional
+        Whether to calculate observed-information covariance. Internal
+        bootstrap refits set this to False and return the covariance-unavailable
+        sentinel because that covariance is not used.
 
     z_trunc : array_like, optional
         Truncation thresholds, i.e., minimum and maximum states of process
@@ -217,17 +223,7 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
         p_est[idx] = min(p_bounds[idx][1],
                          max(p_bounds[idx][0], p_est[idx]))
 
-    if p0.size > 1:
-        try:
-            cov = np.linalg.inv(-ut.Hessian(ll, p_est, p_bounds))
-        except:
-            cov = 'Covariance matrix could not be determined.'
-    else:
-        try:
-            print(np.array([-1/ut.Hessian(ll, p_est, p_bounds)]))
-            cov = np.array([-1/ut.Hessian(ll, p_est, p_bounds)])
-        except:
-            cov = 'Covariance matrix could not be determined.'
+    cov = safe_from_hessian(ll, p_est, p_bounds) if compute_cov else UNAVAILABLE
 
     ll = ll(np.array(p_est))
 

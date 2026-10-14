@@ -1,5 +1,6 @@
 import numpy as np
 import birdepy.utility as ut
+from birdepy.covariance import UNAVAILABLE, safe_from_hessian
 from birdepy.interface_probability import probability
 import warnings
 
@@ -54,7 +55,7 @@ def bld_ll_fun(data, likelihood, model, z_trunc, options):
 
 
 def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
-                     p0, p_bounds, con, opt_method, options):
+                     p0, p_bounds, con, opt_method, options, compute_cov=True):
     """Parameter estimation for discretely observed continuous-time
     birth-and-death processes using direct numerical maximization of
     approximate likelihood functions.
@@ -96,6 +97,11 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
         and ``z_max=max(p_data) + 2*z_range`` where
         ``z_range=max(p_data)-min(p_data)``. Only applicable to `likelihood`
         methods 'Erlang', 'expm' and 'uniform'.
+
+    compute_cov : bool, optional
+        Whether to calculate observed-information covariance. Internal
+        bootstrap refits set this to False and return the covariance-unavailable
+        sentinel because that covariance is not used.
 
     Examples
     --------
@@ -170,23 +176,13 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     # Obtain parameter estimates
     opt = ut.minimize_(error_fun, p0, p_bounds, con, opt_method, options)
 
-    # Obtain covariance estimates
-    if p0.size > 1:
-        try:
-            cov = np.linalg.inv(-ut.Hessian(ll, opt.x, p_bounds))
-        except:
-            cov = 'Covariance matrix could not be determined.'
-    else:
-        try:
-            cov = -1/ut.Hessian(ll, opt.x, p_bounds)
-        except:
-            cov = 'Covariance matrix could not be determined.'
+    cov = safe_from_hessian(ll, opt.x, p_bounds) if compute_cov else UNAVAILABLE
 
     return opt, cov
 
 
 def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
-                       known_p, idx_known_p, opt_method, options):
+                       known_p, idx_known_p, opt_method, options, compute_cov=True):
     """Parameter estimation for continuously  observed continuous-time
     birth-and-death processes using direct numerical maximization of
     the likelihood.
@@ -197,6 +193,9 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
 
         bd.estimate(t_data, p_data, p0, p_bounds, scheme='continuous')
 
+    ``compute_cov`` is an internal option used by bootstrap refits to skip
+    unused observed-information covariance and return the covariance-unavailable
+    sentinel.
 
     Examples
     --------
@@ -328,17 +327,8 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     if not np.isfinite(opt.fun):
         opt.success = False
         opt.message = "The fitted rates cannot produce the observed events."
-        return opt, 'Covariance matrix could not be determined.'
+        return opt, UNAVAILABLE
 
-    # A flat or nonconcave likelihood does not define a Gaussian covariance.
-    try:
-        information = -np.atleast_2d(ut.Hessian(ll, opt.x, p_bounds))
-        information = (information + information.T) / 2
-        if not np.all(np.isfinite(information)):
-            raise ValueError("Nonfinite observed information.")
-        np.linalg.cholesky(information)
-        cov = np.linalg.inv(information)
-    except (ValueError, np.linalg.LinAlgError):
-        cov = 'Covariance matrix could not be determined.'
+    cov = safe_from_hessian(ll, opt.x, p_bounds) if compute_cov else UNAVAILABLE
 
     return opt, cov
