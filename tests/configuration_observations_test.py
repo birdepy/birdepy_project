@@ -7,22 +7,8 @@ from types import MappingProxyType
 from scipy.optimize import LinearConstraint, OptimizeResult
 
 import birdepy as bd
-from birdepy.configuration import optimizer_options
 import birdepy.utility as ut
 from birdepy.utility import data_sort
-
-
-def test_optimizer_defaults_are_solver_specific_and_do_not_mutate_user_options():
-    supplied = {"maxiter": 7, "likelihood": "expm"}
-    de_options = optimizer_options(supplied, "differential-evolution")
-    lbfgsb_options = optimizer_options(supplied, "L-BFGS-B")
-
-    assert supplied == {"maxiter": 7, "likelihood": "expm"}
-    assert de_options["maxiter"] == 7
-    assert "popsize" not in de_options
-    assert lbfgsb_options["maxiter"] == 7
-    assert "maxcor" not in lbfgsb_options
-    assert lbfgsb_options["likelihood"] == "expm"
 
 
 def test_optimizer_dispatch_uses_solver_defaults_without_mutating_options(monkeypatch):

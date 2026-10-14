@@ -11,9 +11,18 @@ _METHOD_ALIASES = {
     "slsqp": "SLSQP",
 }
 
-_DE_OPTION_NAMES = {"strategy", "maxiter", "popsize", "tol", "mutation", "recombination", "seed", "rng", "callback", "disp", "init", "atol", "updating", "workers", "x0", "integrality", "vectorized"}
-_LBFGSB_OPTION_NAMES = {"disp", "maxcor", "ftol", "gtol", "eps", "maxfun", "maxiter", "iprint", "maxls", "finite_diff_rel_step", "workers"}
-_SLSQP_OPTION_NAMES = {"ftol", "eps", "disp", "maxiter", "finite_diff_rel_step", "workers"}
+_DE_OPTION_NAMES = {
+    "strategy", "maxiter", "popsize", "tol", "mutation", "recombination",
+    "seed", "rng", "callback", "disp", "init", "atol", "updating", "workers",
+    "x0", "integrality", "vectorized",
+}
+_LBFGSB_OPTION_NAMES = {
+    "disp", "maxcor", "ftol", "gtol", "eps", "maxfun", "maxiter", "iprint",
+    "maxls", "finite_diff_rel_step", "workers",
+}
+_SLSQP_OPTION_NAMES = {
+    "ftol", "eps", "disp", "maxiter", "finite_diff_rel_step", "workers",
+}
 
 
 def normalize_optimizer(method):
@@ -30,12 +39,6 @@ def normalize_optimizer(method):
     return _METHOD_ALIASES.get(method.lower(), method)
 
 
-def optimizer_options(options, method):
-    """Copy user options; SciPy owns defaults except BirDePy overrides."""
-    normalize_optimizer(method)
-    return dict(options)
-
-
 def solver_options(options, names):
     """Return only explicit controls accepted by a solver."""
     return {name: value for name, value in options.items() if name in names}
@@ -48,14 +51,12 @@ def differential_evolution_constraints(constraints):
     polishing pass.  Native SciPy linear and nonlinear constraints are already
     accepted by differential evolution and are passed through unchanged.
     """
-    if constraints == () or (isinstance(constraints, (list, tuple)) and not constraints):
+    if isinstance(constraints, (list, tuple)) and not constraints:
         return (), ()
     if isinstance(constraints, (Mapping, LinearConstraint, NonlinearConstraint)):
         items = (constraints,)
     elif isinstance(constraints, (list, tuple)):
         items = tuple(constraints)
-        if not items:
-            return (), constraints
     else:
         raise TypeError("Argument `con` must be a constraint dictionary, SciPy constraint, or sequence of them.")
 
@@ -87,12 +88,11 @@ def _adapt_constraint(constraint):
     def constrained_function(x, function=function, args=args):
         return function(x, *args)
 
-    lower, upper = (0, 0) if kind == "eq" else (0, float("inf"))
     jacobian = constraint.get("jac", "2-point")
     if callable(jacobian):
         def constrained_jacobian(x, jacobian=jacobian, args=args):
             return jacobian(x, *args)
     else:
         constrained_jacobian = jacobian
-    return NonlinearConstraint(constrained_function, lower, upper,
+    return NonlinearConstraint(constrained_function, 0, np.inf,
                                jac=constrained_jacobian)

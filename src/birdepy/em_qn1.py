@@ -57,15 +57,10 @@ def discrete_est_em_qn1(sorted_data, p0, likelihood, technique, known_p,
             m += 1
             p_est_change = np.multiply(0.5 ** m, p_est_change_0)
             p_est_next = p_est + p_est_change
-            feasible = True
-            if type(con) == dict:
-                if con['fun'](p_est_next) < 0:
-                    feasible = False
-            else:
-                for c in con:
-                    if c['fun'](p_est_next) < 0:
-                        feasible = False
-                        break
+            constraints = [con] if isinstance(con, dict) else con
+            feasible = all(
+                np.all(np.asarray(c['fun'](p_est_next, *c.get('args', ()))) >= 0)
+                for c in constraints)
             if feasible:
                 for idx, b in enumerate(p_bounds):
                     if p_est_next[idx] < b[0]:

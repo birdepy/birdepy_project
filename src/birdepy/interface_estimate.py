@@ -10,9 +10,9 @@ from collections.abc import Mapping
 from birdepy.observations import normalize_observations
 import time
 from scipy.optimize import OptimizeResult
-from scipy.optimize import LinearConstraint, NonlinearConstraint
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
 from birdepy import simulate
+from scipy.optimize import LinearConstraint, NonlinearConstraint
 
 
 def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
@@ -90,7 +90,10 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         Constraints definition for parameters (only for kwarg `opt_method`
         equal to 'differential-evolution', 'COBYLA', 'SLSQP' or
         'trust-constr'). SciPy constraint objects are supported by DNM and
-        LSE; ABC and EM require legacy constraint dictionaries. See
+        LSE; ABC and EM support inequality dictionaries, including vector-valued
+        functions and ``args``. Equality constraints require a local constrained
+        optimizer such as SLSQP; differential evolution and ABC/EM reject them.
+        See
         :ref:`here <Parameter Constraints>` for more information.
 
     known_p : array_like, optional
@@ -245,7 +248,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     if 'options' in options:
         nested_options = options['options']
         if not isinstance(nested_options, Mapping):
-            raise TypeError("Argument `options` must be a dictionary.")
+            raise TypeError("Argument `options` must be a mapping.")
         options = {**nested_options, **{key: value for key, value in options.items()
                                         if key != 'options'}}
 
@@ -267,10 +270,16 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             isinstance(item, (LinearConstraint, NonlinearConstraint))
             for item in constraint_items):
         raise TypeError("SciPy constraint objects are supported by DNM and LSE; ABC and EM require constraint dictionaries.")
-    if framework == 'abc' and any(
-            isinstance(item, Mapping) and str(item.get('type', '')).lower() == 'eq'
-            for item in constraint_items):
-        raise TypeError("ABC supports inequality constraint dictionaries only.")
+    if framework in {'abc', 'em'}:
+        for item in constraint_items:
+            if not isinstance(item, Mapping):
+                raise TypeError("ABC and EM support inequality constraint dictionaries only.")
+            if str(item.get('type', '')).lower() != 'ineq':
+                raise TypeError("ABC and EM support inequality constraint dictionaries only.")
+            if not callable(item.get('fun')):
+                raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
+        # The legacy consumers expect dictionaries; avoid mutating caller data.
+        con = tuple(dict(item, type='ineq') for item in constraint_items)
 
     # Set the random number generator
     if seed is None:
@@ -546,9 +555,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         else:
             raise ValueError("Argument `framework` has an unknown value. Should "
                              "be one of: 'abc', 'dnm', 'lse', or 'em'.")
-    else:
-        raise ValueError("Argument `scheme` has an unknown value. Should "
-                         "be one of: 'discrete' or 'continuous'.")
 
     # Prepare for plotting
     p_est = np.asarray(p_est)
@@ -604,10 +610,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         bootstrap_samples = np.zeros((num_samples, p0.size))
         for idx in range(num_samples):
             if scheme == 'continuous':
-                time_paths = [t_data] if np.ndim(t_data[0]) == 0 else t_data
-                pop_paths = [p_data] if np.ndim(p_data[0]) == 0 else p_data
                 t_data_temp, p_data_temp = [], []
-                for times, pops in zip(time_paths, pop_paths):
+                for times, pops in zip(t_data, p_data):
                     horizon = times[-1] - times[0]
                     jump_times, pop_sizes = simulate.continuous(
                         param, model, pops[0], horizon, seed=rng,

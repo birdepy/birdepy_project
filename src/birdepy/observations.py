@@ -22,7 +22,6 @@ def normalize_observations(t_data, p_data, scheme):
         raise ValueError("Arguments `t_data` and `p_data` must contain the same number of paths.")
 
     normalized_times, normalized_populations = [], []
-    max_population = np.nextafter(float(np.iinfo(np.int64).max), -np.inf)
     for index, (time_path, population_path) in enumerate(zip(times, populations)):
         time_path = _as_numeric_vector(time_path, "t_data", index).astype(float)
         population_path = _as_numeric_vector(population_path, "p_data", index)
@@ -37,10 +36,17 @@ def normalize_observations(t_data, p_data, scheme):
             raise ValueError("Observation times must be nondecreasing within each path.")
         if not np.all(np.isfinite(population_path)):
             raise ValueError("Observed populations must be finite.")
-        if np.any(population_path < 0) or not np.all(population_path == np.floor(population_path)):
+        if np.any(population_path < 0) or (population_path.dtype.kind == "f"
+                and not np.all(population_path == np.floor(population_path))):
             raise ValueError("Observed populations must be nonnegative integers.")
-        if np.any(population_path >= max_population):
-            raise ValueError("Observed populations must fit in the platform integer range.")
+        # Compare integers as integers; float(int64.max) rounds up to 2**63.
+        if population_path.dtype.kind == "f":
+            too_large = np.any(population_path >= 2.0 ** 63)
+        else:
+            too_large = np.any(population_path > np.iinfo(np.int64).max)
+        if too_large:
+            raise ValueError("Observed populations must fit in the int64 integer range.")
+        population_path = population_path.astype(np.int64)
         population_differences = np.diff(population_path)
         simultaneous_changes = (time_differences == 0) & (population_differences != 0)
         if scheme == "discrete" and np.any(simultaneous_changes):
@@ -48,7 +54,7 @@ def normalize_observations(t_data, p_data, scheme):
         if scheme == "continuous" and np.any(np.abs(population_differences) > 1):
             raise ValueError("Continuously observed populations must change by one event at a time.")
         normalized_times.append(time_path)
-        normalized_populations.append(population_path.astype(np.int64))
+        normalized_populations.append(population_path)
     return normalized_times, normalized_populations
 
 

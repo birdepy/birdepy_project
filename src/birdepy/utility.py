@@ -1,6 +1,6 @@
 import numpy as np
 import mpmath as mp
-from scipy.optimize import minimize, differential_evolution, NonlinearConstraint
+from scipy.optimize import minimize, differential_evolution
 from scipy.optimize._numdiff import approx_derivative
 from scipy.stats import multivariate_normal
 import math
@@ -14,7 +14,6 @@ from importlib import resources
 from birdepy.configuration import (
     differential_evolution_constraints,
     normalize_optimizer,
-    optimizer_options,
     solver_options,
     _DE_OPTION_NAMES,
     _LBFGSB_OPTION_NAMES,
@@ -598,7 +597,6 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
     Minimizes 'error_fun' using the method specified by 'opt_method'.
     """
     opt_method = normalize_optimizer(opt_method)
-    options = optimizer_options(options, opt_method)
     if opt_method == "differential-evolution":
         con, old_con = differential_evolution_constraints(con)
         de_options = solver_options(options, _DE_OPTION_NAMES)
@@ -631,13 +629,17 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
         )
     elif opt_method == "SLSQP":
         solver_config = solver_options(options, _SLSQP_OPTION_NAMES)
-        solver_config.update({name: value for name, value in {"eps": None, "ftol": 2.220446049250313e-09, "maxiter": 1000}.items() if name not in solver_config})
+        # Retain BirDePy's historical relative differences and SLSQP controls.
+        solver_config.setdefault("eps", None)
+        solver_config.setdefault("ftol", 2.220446049250313e-09)
+        solver_config.setdefault("maxiter", 1000)
         sol = minimize(
             error_fun,
             p0,
             method=opt_method,
             bounds=p_bounds,
             constraints=con,
+            callback=options.get("callback"),
             jac=options.get("jac", "2-point"), options=solver_config,
         )
     else:
