@@ -20,17 +20,9 @@ def estimate_prior_pdf(p_bounds, con, rng):
         param_prop = (p_bounds[:, 1] - p_bounds[:, 0]) * \
                      rng.uniform(size=p_bounds.shape[0]) + \
                      p_bounds[:, 0]
-        success = True
-        if type(con) == dict:
-            # If there is one constraint specified
-            if con['fun'](param_prop) < 0:
-                success = False
-        # If there is strictly more than one or exactly 0 constraints specified
-        else:
-            for c in con:
-                if c['fun'](param_prop) < 0:
-                    success = False
-                    break
+        constraints = [con] if isinstance(con, dict) else con
+        success = all(np.all(np.asarray(c['fun'](param_prop, *c.get('args', ()))) >= 0)
+                      for c in constraints)
         successes += success
     return 1 / ((successes / 10 ** 3) * np.prod(p_bounds[:, 1] - p_bounds[:, 0]))
 
@@ -72,7 +64,8 @@ def param_sampler(previous_sample, k, weights, cov, p_bounds, con, rng):
         if np.any(param_prop < p_bounds[:, 0]) or np.any(param_prop > p_bounds[:, 1]):
             continue
         constraints = [con] if isinstance(con, dict) else con
-        if any(np.any(c['fun'](param_prop) < 0) for c in constraints):
+        if not all(np.all(np.asarray(c['fun'](param_prop, *c.get('args', ()))) >= 0)
+                   for c in constraints):
             continue
         return param_prop
 

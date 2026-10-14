@@ -5,7 +5,10 @@ from birdepy.interface_dnm import discrete_est_dnm
 from birdepy.interface_dnm import continuous_est_dnm
 from birdepy.interface_lse import discrete_est_lse
 from birdepy.interface_em import discrete_est_em
+from scipy.optimize import LinearConstraint, NonlinearConstraint
 import birdepy.utility as ut
+from collections.abc import Mapping
+from birdepy.observations import normalize_observations
 import time
 from scipy.optimize import OptimizeResult
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
@@ -86,8 +89,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     con : {Constraint, dict} or List of {Constraint, dict}, optional
         Constraints definition for parameters (only for kwarg `opt_method`
         equal to 'differential-evolution', 'COBYLA', 'SLSQP' or
-        'trust-constr').   See :ref:`here <Parameter Constraints>` for more
-        information.
+        'trust-constr'). SciPy constraint objects are supported by DNM and
+        LSE; ABC and EM support inequality dictionaries, including vector-valued
+        functions and ``args``. Equality constraints require a local constrained
+        optimizer such as SLSQP; differential evolution and ABC/EM reject them.
+        See
+        :ref:`here <Parameter Constraints>` for more information.
 
     known_p : array_like, optional
         List of known parameter values. For built in models these must be in
@@ -237,9 +244,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     # Key word arguments can be passed as a dictionary which is itself the value
     # of a key word argument with key 'options', in this case the dictionary
     # must be extracted:
-    if 'options' in options.keys():
-        nested_options = options.pop('options')
-        options = {**nested_options, **options}
+    options = dict(options)
+    if 'options' in options:
+        nested_options = options['options']
+        if not isinstance(nested_options, Mapping):
+            raise TypeError("Argument `options` must be a mapping.")
+        options = {**nested_options, **{key: value for key, value in options.items()
+                                        if key != 'options'}}
 
     # Convert the arguments of 'p0', 'known_p' and 'idx_known_p' into numpy arrays
     p0 = np.array(p0)
@@ -248,7 +259,27 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     # Augment the options dictionary with items used by the optimization routines later
     options.setdefault('seed', seed)
-    options = ut.add_options(options)
+
+    # Normalize both observation schemes before deriving truncation points or
+    # handing data to their respective likelihood implementations.
+    t_data, p_data = normalize_observations(t_data, p_data, scheme)
+    if not any(len(path) > 1 for path in t_data):
+        raise ValueError("At least one observation path must contain an informative interval.")
+    constraint_items = con if isinstance(con, (list, tuple)) else (con,)
+    if framework in {'abc', 'em'} and any(
+            isinstance(item, (LinearConstraint, NonlinearConstraint))
+            for item in constraint_items):
+        raise TypeError("SciPy constraint objects are supported by DNM and LSE; ABC and EM require constraint dictionaries.")
+    if framework in {'abc', 'em'}:
+        for item in constraint_items:
+            if not isinstance(item, Mapping):
+                raise TypeError("ABC and EM support inequality constraint dictionaries only.")
+            if str(item.get('type', '')).lower() != 'ineq':
+                raise TypeError("ABC and EM support inequality constraint dictionaries only.")
+            if not callable(item.get('fun')):
+                raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
+        # The legacy consumers expect dictionaries; avoid mutating caller data.
+        con = tuple(dict(item, type='ineq') for item in constraint_items)
 
     # Set the random number generator
     if seed is None:
@@ -316,7 +347,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     elif scheme == 'discrete':
 
         # Sort the data into a more efficient format
-        data = ut.data_sort(t_data, p_data)
+        data = ut.data_sort(t_data, p_data, _normalized=True)
 
         # Each of the frameworks for obtaining parameter estimates are contained in their own
         # module interface_* where * depends on the framework. This control structure determines
@@ -524,9 +555,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         else:
             raise ValueError("Argument `framework` has an unknown value. Should "
                              "be one of: 'abc', 'dnm', 'lse', or 'em'.")
-    else:
-        raise ValueError("Argument `scheme` has an unknown value. Should "
-                         "be one of: 'discrete' or 'continuous'.")
 
     # Prepare for plotting
     p_est = np.asarray(p_est)
@@ -582,10 +610,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         bootstrap_samples = np.zeros((num_samples, p0.size))
         for idx in range(num_samples):
             if scheme == 'continuous':
-                time_paths = [t_data] if np.ndim(t_data[0]) == 0 else t_data
-                pop_paths = [p_data] if np.ndim(p_data[0]) == 0 else p_data
                 t_data_temp, p_data_temp = [], []
-                for times, pops in zip(time_paths, pop_paths):
+                for times, pops in zip(t_data, p_data):
                     horizon = times[-1] - times[0]
                     jump_times, pop_sizes = simulate.continuous(
                         param, model, pops[0], horizon, seed=rng,
