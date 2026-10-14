@@ -11,6 +11,12 @@ from matplotlib.patches import Ellipse
 from gwr_inversion import gwr
 import json
 from importlib import resources
+from birdepy.configuration import (
+    differential_evolution_constraints,
+    normalize_optimizer,
+    optimizer_options,
+)
+from birdepy.observations import normalize_observations
 
 
 def Jacobian(fun, x, bounds):
@@ -140,14 +146,7 @@ def data_sort(t_data, p_data):
         an observed transition occurs.
 
     """
-    if type(t_data) is np.ndarray:
-        t_data = t_data.tolist()
-    if type(t_data[0]) is not list:
-        t_data = [t_data]
-    if type(p_data) == np.ndarray:
-        p_data = p_data.tolist()
-    if type(p_data[0]) is not list:
-        p_data = [p_data]
+    t_data, p_data = normalize_observations(t_data, p_data, "discrete")
 
     all_transitions = []
     for idx1 in range(len(p_data)):
@@ -583,81 +582,25 @@ def laplace_invert(fun, t, **options):
 
 def add_options(options):
     """
-    Completes the 'options' dictionary for use in :func:`minimize_`.
-    Is needed to enable BirDePy to specify default values for options
-    in the SciPy optimization functions.
+    Return a copy of ``options`` for internal use.
+
+    Solver-specific defaults are selected by :func:`minimize_` after the
+    optimizer is known.  ``seed`` remains available for direct internal users
+    that bypass :func:`birdepy.estimate`.
     """
-    if "seed" not in options.keys():
-        options["seed"] = np.random.default_rng()
-    if "strategy" not in options.keys():
-        options["strategy"] = "best1bin"
-    if "maxiter" not in options.keys():
-        options["maxiter"] = 1000
-    if "popsize" not in options.keys():
-        options["popsize"] = 15
-    if "tol" not in options.keys():
-        options["tol"] = 0.01
-    if "mutation" not in options.keys():
-        options["mutation"] = 0.5
-    if "recombination" not in options.keys():
-        options["recombination"] = 0.7
-    if "callback" not in options.keys():
-        options["callback"] = None
-    if "disp" not in options.keys():
-        options["disp"] = False
-    if "polish" not in options.keys():
-        options["polish"] = True
-    if "init" not in options.keys():
-        options["init"] = "latinhypercube"
-    if "atol" not in options.keys():
-        options["atol"] = 0
-    if "updating" not in options.keys():
-        options["updating"] = "immediate"
-    if "jac" not in options.keys():
-        options["jac"] = "2-point"
-    if "maxcor" not in options.keys():
-        options["maxcor"] = 10
-    if "ftol" not in options.keys():
-        options["ftol"] = 2.220446049250313e-09
-    if "gtol" not in options.keys():
-        options["gtol"] = 1e-05
-    if "eps" not in options.keys():
-        options["eps"] = None
-    if "maxfun" not in options.keys():
-        options["maxfun"] = 15000
-    if "maxiter" not in options.keys():
-        options["maxiter"] = 15000
-    if "iprint" not in options.keys():
-        options["iprint"] = -1
-    if "callback" not in options.keys():
-        options["callback"] = None
-    if "maxls" not in options.keys():
-        options["maxls"] = 20
-    if "finite_diff_rel_step" not in options.keys():
-        options["finite_diff_rel_step"] = None
-    if "ftol" not in options.keys():
-        options["ftol"] = 1e-06
-    if "eps" not in options.keys():
-        options["eps"] = 1.4901161193847656e-08
-    if "disp" not in options.keys():
-        options["disp"] = False
-    if "maxiter" not in options.keys():
-        options["maxiter"] = 100
-    if "finite_diff_rel_step" not in options.keys():
-        options["finite_diff_rel_step"] = None
-    if "jac" not in options.keys():
-        options["jac"] = None
-    return options
+    copied_options = dict(options)
+    copied_options.setdefault("seed", None)
+    return copied_options
 
 
 def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
     """
     Minimizes 'error_fun' using the method specified by 'opt_method'.
     """
+    opt_method = normalize_optimizer(opt_method)
+    options = optimizer_options(options, opt_method)
     if opt_method == "differential-evolution":
-        if con != ():
-            old_con = con
-            con = NonlinearConstraint(con["fun"], 0, np.inf)
+        con, old_con = differential_evolution_constraints(con)
         sol = differential_evolution(
             error_fun,
             p_bounds,
@@ -678,7 +621,7 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
             constraints=con,
         )
         if options["polish"]:
-            if con != ():
+            if old_con != ():
                 sol = minimize(
                     error_fun,
                     sol.x,

@@ -6,6 +6,8 @@ from birdepy.interface_dnm import continuous_est_dnm
 from birdepy.interface_lse import discrete_est_lse
 from birdepy.interface_em import discrete_est_em
 import birdepy.utility as ut
+from birdepy.configuration import normalize_optimizer
+from birdepy.observations import normalize_observations
 import time
 from scipy.optimize import OptimizeResult
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
@@ -237,9 +239,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     # Key word arguments can be passed as a dictionary which is itself the value
     # of a key word argument with key 'options', in this case the dictionary
     # must be extracted:
-    if 'options' in options.keys():
-        nested_options = options.pop('options')
-        options = {**nested_options, **options}
+    options = dict(options)
+    if 'options' in options:
+        nested_options = options['options']
+        if not isinstance(nested_options, dict):
+            raise TypeError("Argument `options` must be a dictionary.")
+        options = {**nested_options, **{key: value for key, value in options.items()
+                                        if key != 'options'}}
 
     # Convert the arguments of 'p0', 'known_p' and 'idx_known_p' into numpy arrays
     p0 = np.array(p0)
@@ -249,6 +255,10 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     # Augment the options dictionary with items used by the optimization routines later
     options.setdefault('seed', seed)
     options = ut.add_options(options)
+
+    # Normalize both observation schemes before deriving truncation points or
+    # handing data to their respective likelihood implementations.
+    t_data, p_data = normalize_observations(t_data, p_data, scheme)
 
     # Set the random number generator
     if seed is None:
@@ -293,6 +303,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             opt_method = options['opt_method']
         else:
             opt_method = 'L-BFGS-B'
+        opt_method = normalize_optimizer(opt_method)
 
         if framework != 'dnm':
             raise TypeError("Argument `framework` must be 'dnm' when "
@@ -414,6 +425,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 else:
                     opt_method = 'SLSQP'
                 options['opt_method'] = opt_method
+            opt_method = normalize_optimizer(opt_method)
 
             # Obtain estimate and associated covariance matrix
             opt, cov = discrete_est_dnm(data, likelihood, model,
@@ -440,6 +452,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 opt_method = 'SLSQP'
             else:
                 opt_method = 'SLSQP'
+            opt_method = normalize_optimizer(opt_method)
             if 'technique' in options.keys():
                 technique = options['technique']
             else:
@@ -500,6 +513,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             else:
                 opt_method = 'L-BFGS-B'
                 options['opt_method'] = opt_method
+            opt_method = normalize_optimizer(opt_method)
             if 'squares' in options.keys():
                 squares = options['squares']
             else:
