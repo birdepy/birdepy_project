@@ -1,6 +1,64 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
+  ],
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "Keep baseline pins installable on the oldest supported Python.",
+      "matchDatasources": [
+        "pypi"
+      ],
+      "constraints": {
+        "python": ">=3.10"
+      },
+      "constraintsFiltering": "strict"
+    },
+    {
+      "matchDatasources": [
+        "pypi"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "compatible Python dependencies"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "lockFileMaintenance"
+      ],
+      "groupName": "release tooling"
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Python version changes require a deliberate support-policy change.",
+      "matchPackageNames": [
+        "python"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Review major dependency migrations individually.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": null
+    }
   ]
 }

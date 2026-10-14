@@ -41,14 +41,10 @@ def f_fun_bld(sorted_data, param, b_rate, d_rate, likelihood, technique,
         else:
             k = 25
             options['k'] = k
-        if 'precision' in options.keys():
-            mp.dps = options['precision']
-        else:
-            mp.dps = 100
-        aug_data = _aug_ilt.aug_bld_ilt(sorted_data, param, b_rate, d_rate,
-                                        likelihood, model, z_trunc, j_tol,
-                                        h_tol, lentz_eps, laplace_method, k,
-                                        options)
+        with mp.workdps(options.get('precision', 100)):
+            aug_data = _aug_ilt.aug_bld_ilt(
+                sorted_data, param, b_rate, d_rate, likelihood, model, z_trunc,
+                j_tol, h_tol, lentz_eps, laplace_method, k, options)
 
     elif technique == 'expm':
         aug_data = _aug_expm.aug_bld_expm(sorted_data, param, b_rate, d_rate,

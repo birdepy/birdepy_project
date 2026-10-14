@@ -102,7 +102,7 @@ def probability_da(z0, zt, t, param, b_rate, d_rate, h_fun, k):
 
         integral = ut.trap_int(integrand, t_linspace)
 
-        indices = np.where(np.in1d(t_linspace, t))[0]
+        indices = np.where(np.isin(t_linspace, t))[0]
 
         m = fluid_path[indices]
 

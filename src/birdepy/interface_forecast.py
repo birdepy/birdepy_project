@@ -86,7 +86,7 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
 
 def forecast(model, z0, times, param, cov=None, interval='confidence', method=None,
              percentiles=(0, 2.5, 10, 25, 50, 75, 90, 97.5, 100),
-             labels=('$95\%$', '$80\%$', '$50\%$'),
+             labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
              p_bounds=None, con=(), known_p=(), idx_known_p=(),
              k=10 ** 3, n=10 ** 3, seed=None, colormap=cm.Purples,
              xlabel='t', ylabel='default', xticks='default',
@@ -289,7 +289,7 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     xticks = np.array(xticks)
     if ylabel == 'default':
         if interval == 'confidence':
-            ylabel = '$\mathbb{E} Z(t)$'
+            ylabel = r'$\mathbb{E} Z(t)$'
         else:
             ylabel = '$Z(t)'
 
