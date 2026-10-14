@@ -15,6 +15,10 @@ from birdepy.configuration import (
     differential_evolution_constraints,
     normalize_optimizer,
     optimizer_options,
+    solver_options,
+    _DE_OPTION_NAMES,
+    _LBFGSB_OPTION_NAMES,
+    _SLSQP_OPTION_NAMES,
 )
 from birdepy.observations import normalize_observations
 
@@ -597,26 +601,13 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
     options = optimizer_options(options, opt_method)
     if opt_method == "differential-evolution":
         con, old_con = differential_evolution_constraints(con)
-        sol = differential_evolution(
-            error_fun,
-            p_bounds,
-            args=(),
-            strategy=options["strategy"],
-            maxiter=options["maxiter"],
-            popsize=options["popsize"],
-            tol=options["tol"],
-            mutation=options["mutation"],
-            recombination=options["recombination"],
-            seed=options["seed"],
-            callback=options["callback"],
-            disp=options["disp"],
-            polish=False,
-            init=options["init"],
-            atol=options["atol"],
-            updating=options["updating"],
-            constraints=con,
-        )
-        if options["polish"]:
+        de_options = solver_options(options, _DE_OPTION_NAMES)
+        if "rng" in de_options:
+            de_options.pop("seed", None)
+        de_options.setdefault("mutation", .5)
+        sol = differential_evolution(error_fun, p_bounds, args=(), polish=False,
+                                     constraints=con, **de_options)
+        if options.get("polish", True):
             if old_con != ():
                 sol = minimize(
                     error_fun,
@@ -628,39 +619,26 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
             else:
                 sol = minimize(error_fun, sol.x, method="L-BFGS-B", bounds=p_bounds)
     elif opt_method == "L-BFGS-B":
+        solver_config = solver_options(options, _LBFGSB_OPTION_NAMES)
+        solver_config.setdefault("eps", None)
         sol = minimize(
             error_fun,
             p0,
             method=opt_method,
             bounds=p_bounds,
-            callback=options["callback"],
-            jac=options["jac"],
-            options={
-                "maxcor": options["maxcor"],
-                "ftol": options["ftol"],
-                "gtol": options["gtol"],
-                "eps": options["eps"],
-                "maxfun": options["maxfun"],
-                "maxiter": options["maxiter"],
-                "maxls": options["maxls"],
-                "finite_diff_rel_step": options["finite_diff_rel_step"],
-            },
+            callback=options.get("callback"), jac=options.get("jac", "2-point"),
+            options=solver_config,
         )
     elif opt_method == "SLSQP":
+        solver_config = solver_options(options, _SLSQP_OPTION_NAMES)
+        solver_config.update({name: value for name, value in {"eps": None, "ftol": 2.220446049250313e-09, "maxiter": 1000}.items() if name not in solver_config})
         sol = minimize(
             error_fun,
             p0,
             method=opt_method,
             bounds=p_bounds,
             constraints=con,
-            jac=options["jac"],
-            options={
-                "ftol": options["ftol"],
-                "eps": options["eps"],
-                "disp": options["disp"],
-                "maxiter": options["maxiter"],
-                "finite_diff_rel_step": options["finite_diff_rel_step"],
-            },
+            jac=options.get("jac", "2-point"), options=solver_config,
         )
     else:
         sol = minimize(

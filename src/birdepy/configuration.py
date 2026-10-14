@@ -11,43 +11,9 @@ _METHOD_ALIASES = {
     "slsqp": "SLSQP",
 }
 
-_DE_DEFAULTS = {
-    "seed": None,
-    "strategy": "best1bin",
-    "maxiter": 1000,
-    "popsize": 15,
-    "tol": 0.01,
-    "mutation": 0.5,
-    "recombination": 0.7,
-    "callback": None,
-    "disp": False,
-    "polish": True,
-    "init": "latinhypercube",
-    "atol": 0,
-    "updating": "immediate",
-}
-
-_LBFGSB_DEFAULTS = {
-    "callback": None,
-    "jac": "2-point",
-    "maxcor": 10,
-    "ftol": 2.220446049250313e-09,
-    "gtol": 1e-05,
-    "eps": None,
-    "maxfun": 15000,
-    "maxiter": 15000,
-    "maxls": 20,
-    "finite_diff_rel_step": None,
-}
-
-_SLSQP_DEFAULTS = {
-    "jac": "2-point",
-    "ftol": 2.220446049250313e-09,
-    "eps": None,
-    "disp": False,
-    "maxiter": 1000,
-    "finite_diff_rel_step": None,
-}
+_DE_OPTION_NAMES = {"strategy", "maxiter", "popsize", "tol", "mutation", "recombination", "seed", "rng", "callback", "disp", "init", "atol", "updating", "workers", "x0", "integrality", "vectorized"}
+_LBFGSB_OPTION_NAMES = {"disp", "maxcor", "ftol", "gtol", "eps", "maxfun", "maxiter", "iprint", "maxls", "finite_diff_rel_step", "workers"}
+_SLSQP_OPTION_NAMES = {"ftol", "eps", "disp", "maxiter", "finite_diff_rel_step", "workers"}
 
 
 def normalize_optimizer(method):
@@ -65,20 +31,14 @@ def normalize_optimizer(method):
 
 
 def optimizer_options(options, method):
-    """Return a copied option mapping with defaults for ``method`` only."""
-    method = normalize_optimizer(method)
-    configured = dict(options)
-    if method == "differential-evolution":
-        defaults = _DE_DEFAULTS
-    elif method == "L-BFGS-B":
-        defaults = _LBFGSB_DEFAULTS
-    elif method == "SLSQP":
-        defaults = _SLSQP_DEFAULTS
-    else:
-        defaults = {}
-    for name, value in defaults.items():
-        configured.setdefault(name, value)
-    return configured
+    """Copy user options; SciPy owns defaults except BirDePy overrides."""
+    normalize_optimizer(method)
+    return dict(options)
+
+
+def solver_options(options, names):
+    """Return only explicit controls accepted by a solver."""
+    return {name: value for name, value in options.items() if name in names}
 
 
 def differential_evolution_constraints(constraints):
@@ -88,7 +48,7 @@ def differential_evolution_constraints(constraints):
     polishing pass.  Native SciPy linear and nonlinear constraints are already
     accepted by differential evolution and are passed through unchanged.
     """
-    if constraints == () or constraints == []:
+    if constraints == () or (isinstance(constraints, (list, tuple)) and not constraints):
         return (), ()
     if isinstance(constraints, (Mapping, LinearConstraint, NonlinearConstraint)):
         items = (constraints,)

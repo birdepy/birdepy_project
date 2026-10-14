@@ -19,11 +19,9 @@ def test_optimizer_defaults_are_solver_specific_and_do_not_mutate_user_options()
 
     assert supplied == {"maxiter": 7, "likelihood": "expm"}
     assert de_options["maxiter"] == 7
-    assert de_options["popsize"] == 15
-    assert "maxcor" not in de_options
+    assert "popsize" not in de_options
     assert lbfgsb_options["maxiter"] == 7
-    assert lbfgsb_options["maxcor"] == 10
-    assert "popsize" not in lbfgsb_options
+    assert "maxcor" not in lbfgsb_options
     assert lbfgsb_options["likelihood"] == "expm"
 
 
@@ -40,19 +38,20 @@ def test_optimizer_dispatch_uses_solver_defaults_without_mutating_options(monkey
 
     monkeypatch.setattr(ut, "differential_evolution", fake_de)
     monkeypatch.setattr(ut, "minimize", fake_minimize)
-    de_options = {"polish": False}
+    de_options = {"polish": False, "workers": 2, "x0": [.5]}
     slsqp_options = {}
     ut.minimize_(lambda p: p[0] ** 2, [1.], [[0., 2.]], (),
                  "differential-evolution", de_options)
     ut.minimize_(lambda p: p[0] ** 2, [1.], [[0., 2.]], (), "SLSQP", slsqp_options)
 
-    assert de_call["maxiter"] == 1000
-    assert de_call["seed"] is None
+    assert de_call["mutation"] == .5
+    assert "maxiter" not in de_call
+    assert de_call["workers"] == 2
+    assert de_call["x0"] == [.5]
     assert slsqp_call["options"] == {
-        "ftol": 2.220446049250313e-09, "eps": None,
-        "disp": False, "maxiter": 1000, "finite_diff_rel_step": None,
+        "ftol": 2.220446049250313e-09, "eps": None, "maxiter": 1000,
     }
-    assert de_options == {"polish": False}
+    assert de_options == {"polish": False, "workers": 2, "x0": [.5]}
     assert slsqp_options == {}
 
 
