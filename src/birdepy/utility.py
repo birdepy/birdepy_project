@@ -5,6 +5,7 @@ from scipy.optimize._numdiff import approx_derivative
 from scipy.stats import multivariate_normal
 import math
 from collections import Counter
+from birdepy.models import ModelCapabilityError, UnknownModelError, get_model
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 from matplotlib.patches import Ellipse
@@ -199,184 +200,40 @@ def data_sort_2(data):
     return sorted_data
 
 
+def _legacy_model_error(model, message):
+    """Translate registry failures to the public utility error contract."""
+    try:
+        return get_model(model)
+    except UnknownModelError as error:
+        raise TypeError(message) from error
+
+
 def higher_birth(model):
-    """
-    Returns a function that gives the birth rate as a function
-    of population size and parameters.
-    """
-    if model == "Verhulst":
-        return lambda z, p: ((p[2] * z) <= 1) * p[0] * (1 - p[2] * z) * z
-    elif model == "Ricker":
-        return lambda z, p: p[0] * np.exp(-((p[2] * z) ** p[3])) * z
-    elif model == "Hassell":
-        return lambda z, p: p[0] * z / (1 + p[2] * z) ** p[3]
-    elif model == "MS-S":
-        return lambda z, p: p[0] * z / (1 + (p[2] * z) ** p[3])
-    elif model == "Moran":
-        return lambda z, p: (z <= p[4]) * (
-            (p[4] - z)
-            * (p[0] * z * (1 - p[2]) / p[4] + p[1] * (p[4] - z) * p[3] / p[4])
-            / p[4]
-        )
-    elif model == "pure-birth":
-        return lambda z, p: p[0] * z
-    elif model == "pure-death":
-        return lambda z, p: 0
-    elif model == "Poisson":
-        return lambda z, p: p[0]
-    elif model == "linear":
-        return lambda z, p: p[0] * z
-    elif model == "linear-migration":
-        return lambda z, p: p[0] * z + p[2]
-    elif model == "M/M/1":
-        return lambda z, p: p[0]
-    elif model == "M/M/inf":
-        return lambda z, p: p[0]
-    elif model == "loss-system":
-        return lambda z, p: (z < p[2]) * p[0]
-    else:
-        raise TypeError("Argument 'model' has an unknown value.")
+    """Return the registered birth-rate function for a built-in model."""
+    return _legacy_model_error(model, "Argument 'model' has an unknown value.").birth_rate
 
 
 def higher_death(model):
-    """
-    Returns a function that gives the death rate as a function
-    of population size and parameters.
-    """
-    if model == "Verhulst":
-        return lambda z, p: p[1] * (1 + p[3] * z) * z
-    elif model in [
-        "Ricker",
-        "Hassell",
-        "MS-S",
-        "loss-system",
-        "linear",
-        "linear-migration",
-        "M/M/inf",
-    ]:
-        return lambda z, p: p[1] * z
-    elif model == "Moran":
-        return lambda z, p: (z <= p[4]) * (
-            z * (p[1] * (p[4] - z) * (1 - p[3]) / p[4] + p[0] * z * p[2] / p[4]) / p[4]
-        )
-    elif model == "M/M/1":
-        return lambda z, p: (z > 0) * p[1]
-    elif model in ["pure-birth", "Poisson"]:
-        return lambda z, p: 0
-    elif model == "pure-death":
-        return lambda z, p: p[0] * z
-    else:
-        raise TypeError("Argument 'model' has an unknown value.")
+    """Return the registered death-rate function for a built-in model."""
+    return _legacy_model_error(model, "Argument 'model' has an unknown value.").death_rate
 
 
 def higher_h_fun(model):
-    """
-    Returns a function that gives the derivative with respect
-    to population size of the function given by the birth rate
-    minus the death rate.
-    """
-    if model == "Verhulst":
-        return lambda z, p: p[0] - p[1] - 2 * z * (p[0] * p[2] + p[1] * p[3])
-    elif model == "Ricker":
-        return (
-            lambda z, p: p[0]
-            * np.exp(-((p[2] * z) ** p[3]))
-            * (1 - p[3] * (p[2] * z) ** p[3])
-            - p[1]
-        )
-    elif model == "Hassell":
-        return (
-            lambda z, p: p[0] * (1 + p[2] * z * (1 - p[3]))
-            / (1 + p[2] * z) ** (p[3] + 1)
-            - p[1]
-        )
-    elif model == "MS-S":
-        return (
-            lambda z, p: (p[0] * (1 + (p[2] * z) ** p[3] * (1 - p[3])))
-            / (1 + (p[2] * z) ** p[3]) ** 2
-            - p[1]
-        )
-    elif model == "Moran":
-        return (
-            lambda z, p: (
-                p[0] * (p[4] * (1 - p[2]) - 2 * z)
-                + p[1] * (2 * z - p[4] * (1 + p[3]))
-            )
-            / p[4] ** 2
-        )
-    elif model == "linear":
-        return lambda z, p: (p[0] - p[1]) * (z - z + 1)
-    elif model == "linear-migration":
-        return lambda z, p: (p[0] - p[1]) * (z - z + 1)
-    elif model == "M/M/1":
-        return lambda z, p: 0 * (z - z + 1)
-    elif model == "M/M/inf":
-        return lambda z, p: -p[1] * (z - z + 1)
-    elif model == "pure-birth":
-        return lambda z, p: p[0] * (z - z + 1)
-    elif model == "pure-death":
-        return lambda z, p: -p[0] * (z - z + 1)
-    elif model == "Poisson":
-        return lambda z, p: 0 * (z - z + 1)
-    else:
-        raise TypeError("Unknown model.")
+    """Return the registered fluid-drift derivative for a built-in model."""
+    spec = _legacy_model_error(model, "Unknown model.")
+    try:
+        return spec.require("drift_derivative")
+    except ModelCapabilityError as error:
+        raise TypeError("Unknown model.") from error
 
 
 def higher_zf_bld(model):
-    """
-    Returns the fixed points of the fluid model associated with the model.
-    """
-    if model == "Verhulst":
-        return lambda p: [0, (p[0] - p[1]) / (p[2] * p[0] + p[1] * p[3])]
-    elif model == "Ricker":
-        return lambda p: [0, ((np.log(p[0] / p[1])) ** (1 / p[3])) / p[2]]
-    elif model == "Hassell":
-        return lambda p: [0, ((p[0] / p[1]) ** (1 / p[3]) - 1) / p[2]]
-    elif model == "MS-S":
-        return lambda p: [0, ((p[0] / p[1] - 1) ** (1 / p[3])) / p[2]]
-    elif model == "Moran":
-        return lambda p: [
-            p[4]
-            * (
-                p[0] * (1 - p[2])
-                - p[1] * (1 + p[3])
-                + np.sqrt(
-                    (p[2] - 1) ** 2 * p[0] ** 2
-                    + 2 * p[0] * p[1] * (p[2] + p[3] + p[2] * p[3] - 1)
-                    + p[1] ** 2 * (p[3] - 1) ** 2
-                )
-            )
-            / (2 * (p[0] - p[1])),
-            p[4]
-            * (
-                p[0] * (1 - p[2])
-                - p[1] * (1 + p[3])
-                - np.sqrt(
-                    (p[2] - 1) ** 2 * p[0] ** 2
-                    + 2 * p[0] * p[1] * (p[2] + p[3] + p[2] * p[3] - 1)
-                    + p[1] ** 2 * (p[3] - 1) ** 2
-                )
-            )
-            / (2 * (p[0] - p[1])),
-        ]
-    elif model == "linear":
-        return lambda p: [0]
-    elif model == "linear-migration":
-        return lambda p: [-p[2] / (p[0] - p[1])]
-    elif model == "Poisson":
-        return lambda p: [np.nan]
-    elif model == "M/M/1":
-        return lambda p: [np.nan]
-    elif model == "M/M/inf":
-        return lambda p: [p[0] / p[1]]
-    elif model == "pure-birth":
-        return lambda p: [np.nan]
-    elif model == "pure-death":
-        return lambda p: [np.nan]
-    elif model == "loss-system":
-        return lambda p: [np.nan]
-    else:
-        raise TypeError("Unknown model.")
+    """Return the registered fluid fixed-point function for a built-in model."""
+    spec = _legacy_model_error(model, "Unknown model.")
+    try:
+        return spec.require("fixed_points")
+    except ModelCapabilityError as error:
+        raise TypeError("Unknown model.") from error
 
 
 def q_mat_bld(z_min, z_max, p, b_rate, d_rate):

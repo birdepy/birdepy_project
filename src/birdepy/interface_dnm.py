@@ -1,5 +1,6 @@
 import numpy as np
 import birdepy.utility as ut
+from birdepy.covariance import from_hessian
 from birdepy.interface_probability import probability
 import warnings
 
@@ -170,17 +171,11 @@ def discrete_est_dnm(data, likelihood, model, z_trunc, idx_known_p, known_p,
     # Obtain parameter estimates
     opt = ut.minimize_(error_fun, p0, p_bounds, con, opt_method, options)
 
-    # Obtain covariance estimates
-    if p0.size > 1:
-        try:
-            cov = np.linalg.inv(-ut.Hessian(ll, opt.x, p_bounds))
-        except:
-            cov = 'Covariance matrix could not be determined.'
-    else:
-        try:
-            cov = -1/ut.Hessian(ll, opt.x, p_bounds)
-        except:
-            cov = 'Covariance matrix could not be determined.'
+    # Obtain covariance estimates using the shared observed-information stage.
+    try:
+        cov = from_hessian(ll, opt.x, p_bounds)
+    except (ValueError, np.linalg.LinAlgError):
+        cov = 'Covariance matrix could not be determined.'
 
     return opt, cov
 
@@ -332,12 +327,9 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
 
     # A flat or nonconcave likelihood does not define a Gaussian covariance.
     try:
-        information = -np.atleast_2d(ut.Hessian(ll, opt.x, p_bounds))
-        information = (information + information.T) / 2
-        if not np.all(np.isfinite(information)):
-            raise ValueError("Nonfinite observed information.")
-        np.linalg.cholesky(information)
-        cov = np.linalg.inv(information)
+        cov = from_hessian(
+            ll, opt.x, p_bounds, require_positive_definite=True
+        )
     except (ValueError, np.linalg.LinAlgError):
         cov = 'Covariance matrix could not be determined.'
 

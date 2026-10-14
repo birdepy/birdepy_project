@@ -5,6 +5,7 @@ import birdepy.em_qn1 as em_qn1
 import birdepy.em_qn2 as em_qn2
 import birdepy.em_cg as em_cg
 import birdepy.utility as ut
+from birdepy.covariance import from_hessian
 from birdepy.interface_dnm import bld_ll_fun
 
 
@@ -217,17 +218,10 @@ def discrete_est_em(data, p0, technique, accelerator, likelihood,
         p_est[idx] = min(p_bounds[idx][1],
                          max(p_bounds[idx][0], p_est[idx]))
 
-    if p0.size > 1:
-        try:
-            cov = np.linalg.inv(-ut.Hessian(ll, p_est, p_bounds))
-        except:
-            cov = 'Covariance matrix could not be determined.'
-    else:
-        try:
-            print(np.array([-1/ut.Hessian(ll, p_est, p_bounds)]))
-            cov = np.array([-1/ut.Hessian(ll, p_est, p_bounds)])
-        except:
-            cov = 'Covariance matrix could not be determined.'
+    try:
+        cov = from_hessian(ll, p_est, p_bounds)
+    except (ValueError, np.linalg.LinAlgError):
+        cov = 'Covariance matrix could not be determined.'
 
     ll = ll(np.array(p_est))
 
