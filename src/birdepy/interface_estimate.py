@@ -7,9 +7,9 @@ from birdepy.interface_lse import discrete_est_lse
 from birdepy.interface_em import discrete_est_em
 import birdepy.utility as ut
 import time
-from scipy.optimize import OptimizeResult
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
 from birdepy import simulate
+from birdepy.results import EstimationOutput
 
 
 def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
@@ -263,10 +263,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     else:
         b_rate = ut.higher_birth(model)
         d_rate = ut.higher_death(model)
-
-    # Create object to return results in
-    class EstimationOutput(OptimizeResult):
-        pass
 
     # Determine maximum and minimum population sizes (or "truncation" points) of process
     if 'z_trunc' in options.keys():

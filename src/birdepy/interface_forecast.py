@@ -1,96 +1,20 @@
-import numpy as np
-from birdepy import simulate
-import birdepy.utility as ut
-import matplotlib.pyplot as plt
-from matplotlib import cm
-import warnings
-from scipy.integrate import solve_ivp
+"""Legacy plotting wrapper for the numerical forecasting API."""
 
+from birdepy.forecast_compute import (DEFAULT_PERCENTILES, compute_forecast,
+                                      mean_curve, parameter_sampler)
+from birdepy.forecast_plot import DEFAULT_COLORMAP, DEFAULT_LABELS, plot_forecast
 
-def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng):
-    """
-    Samples parameter values according to a truncated multivariate normal with
-    expected value given by argument 'param', covariance given by argument 'cov'
-    and truncated to support defined by 'p_bounds' and 'con'.
-    """
-    while True:
-        # First obtain proposal satisfying bounds:
-        while True:
-            param_prop = rng.multivariate_normal(param, cov)
-            cond = True
-            for bd_idx, bd in enumerate(p_bounds if p_bounds is not None else ()):
-                if param_prop[bd_idx] > bd[1] or \
-                        param_prop[bd_idx] < bd[0]:
-                    cond = False
-            if not cond:
-                continue
-            break
-        # Then check proposal also satisfies constraints:
-        if type(con) == dict:
-            # If there is one constraint specified
-            if con['fun'](param_prop) < 0:
-                continue
-        else:
-            # If there is strictly more than one or 0 constraints specified
-            cond = True
-            for c in con:
-                if c['fun'](param_prop) < 0:
-                    cond = False
-            if not cond:
-                continue
-        break
-    param_prop = ut.p_bld(np.array(param_prop), idx_known_p, known_p)
-    return param_prop
-
-
-def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
-               shift_times, n, rng):
-    """
-    Generates an approximation to the expected value of a population-size-dependent
-    birth-and-death process using a deterministic (fluid) approximation or
-    simulation.
-    """
-    if method == 'fm':
-        if callable(z0):
-            z0_ = z0()
-        else:
-            z0_ = z0
-        if shift_times[-1] == 0:
-            return np.full(len(shift_times), z0_, dtype=float)
-        for solver_method in solver_methods:
-            fluid_path = solve_ivp(
-                lambda t, z: b_rate(z, param) - d_rate(z, param),
-                [0, shift_times[-1]],
-                [z0_],
-                t_eval=shift_times,
-                method=solver_method)
-            if fluid_path.success:
-                forecasted_mean = fluid_path.y[0]
-                break
-        else:
-            raise RuntimeError("Unable to solve the forecast mean trajectory.")
-    elif method in ['exact', 'ea', 'ma', 'gwa']:
-        forecasted_mean = np.zeros(len(shift_times))
-        for idx in range(n):
-            forecasted_mean += simulate.discrete(param, 'custom', z0,
-                                                 shift_times,
-                                                 b_rate=b_rate,
-                                                 d_rate=d_rate, k=1,
-                                                 method=method,
-                                                 seed=rng)
-        forecasted_mean = np.divide(forecasted_mean, n)
-    else:
-        raise ValueError("Unknown method for computing a forecast mean.")
-    return forecasted_mean
+# Keep historical helper import paths explicit for downstream callers.
+__all__ = ["forecast", "mean_curve", "parameter_sampler"]
 
 
 def forecast(model, z0, times, param, cov=None, interval='confidence', method=None,
-             percentiles=(0, 2.5, 10, 25, 50, 75, 90, 97.5, 100),
-             labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
+             percentiles=DEFAULT_PERCENTILES,
+             labels=DEFAULT_LABELS,
              p_bounds=None, con=(), known_p=(), idx_known_p=(),
-             k=10 ** 3, n=10 ** 3, seed=None, colormap=cm.Purples,
-             xlabel='t', ylabel='default', xticks='default',
-             rotation=45, display=False, export=False, **options):
+             k=10 ** 3, n=10 ** 3, seed=None, colormap=DEFAULT_COLORMAP,
+             xlabel='t', ylabel='default', xticks='default', rotation=45,
+             display=False, export=False, **options):
     """Simulation based forecasting for continuous-time birth-and-death processes.
     Produces a plot of the likely range of mean population sizes subject to parameter uncertainty
     (confidence intervals) or the likely range of population sizes subject to parameter
@@ -172,7 +96,10 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         ``(min, max)`` pairs for each unknown parameter. See :ref:`here <Parameter Constraints>`.
 
     con : {Constraint, dict} or List of {Constraint, dict}, optional
-        Constraints definition for parameters.
+        Inequality constraints on unknown parameters, applied when sampling
+        with ``cov``. Dictionaries support vector-valued functions and ``args``;
+        SciPy linear and nonlinear inequalities are also supported. Exact
+        equalities are unsupported: use ``known_p`` or reparameterize the model.
         See :ref:`here <Parameter Constraints>` for more information.
 
     known_p : array_like, optional
@@ -227,6 +154,11 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
     export : str, optional
         File name for export of the figure to a tex file.
 
+    max_rejections : int, optional
+        Maximum proposals per uncertain parameter sample (default 10000).
+        Raises ``RuntimeError`` if bounds and constraints cannot be satisfied
+        within this limit. Pass this control as a keyword argument.
+
     Examples
     --------
     First simulate some sample paths using : :`birdepy.simulate.discrete()`: ::
@@ -251,14 +183,20 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
 
     Notes
     -----
-    This function creates a plot but does not return anything.
+    This function creates a plot and returns ``0`` for compatibility.
+    Use :func:`birdepy.compute_forecast` to obtain numerical results without
+    creating a figure, and :func:`birdepy.plot_forecast` to render them on an
+    optional supplied axis. For example::
+
+        import matplotlib.pyplot as plt
+        result = bd.compute_forecast(
+            "linear", 10, [0, 1, 2], [.6, .4],
+            interval="prediction", k=100, seed=123)
+        fig, ax = plt.subplots()
+        bd.plot_forecast(result, ax=ax)
 
     For a text book treatment on the theory of birth-and-death processes
     see [2].
-
-    If `model` is 'Poisson', then the true dnm is immediately returned (i.e.,
-    the total number of events during the observation periods divided by the
-    total observation time).
 
     See also
     --------
@@ -277,136 +215,13 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
      applications (Volume 1) 3rd ed. John Wiley & Sons.
 
     """
-    # Convert times into a numpy array
-    times = np.array(times)
-    if (times.ndim != 1 or times.size == 0 or not np.all(np.isfinite(times))
-            or np.any(np.diff(times) <= 0)):
-        raise ValueError("Forecast times must be a nonempty, increasing finite sequence.")
-
-    # Prepare for plotting
-    if type(xticks) == str:
-        xticks = times
-    xticks = np.array(xticks)
-    if ylabel == 'default':
-        if interval == 'confidence':
-            ylabel = r'$\mathbb{E} Z(t)$'
-        else:
-            ylabel = '$Z(t)'
-
-    # Determine method for computing sample paths
-    if interval == 'confidence' and method is None:
-        method = 'fm'
-    elif interval == 'prediction' and method is None:
-        method = 'gwa'
-    elif interval == 'prediction' and method == 'fm':
-        raise TypeError("Argument of `method` equal 'fm' not possible when argument "
-                        "of `interval` equals 'prediction'.")
-
-    # Shift the times so that the earliest observation is time 0
-    shift_times = times - times[0]
-
-    # Covariance matrix must be an array, convert to array if it is a float or int
-    if cov is not None:
-        cov = np.atleast_2d(cov)
-    full_param = ut.p_bld(np.atleast_1d(param), idx_known_p, known_p)
-
-    # Define the model-dependent birth and death rate functions
-    if model == 'custom':
-        b_rate = options['b_rate']
-        d_rate = options['d_rate']
-    else:
-        b_rate = ut.higher_birth(model)
-        d_rate = ut.higher_death(model)
-
-    # Set the random number generator
-    if seed is None:
-        rng = np.random.default_rng()
-    else:
-        rng = np.random.default_rng(seed)
-
-    # These are the methods we try to solve differential equations with in scipy.integrate.solve_ivp
-    solver_methods = ['RK45', 'Radau', 'RK23', 'BDF', 'DOP853']
-
-    # Initialise a plot
-    fig, (ax1) = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
-    samples = None
-
-    # A difference procedure needs to be followed depending on whether a
-    # 'confidence' or 'prediction' forecast is requested
-    if interval == 'confidence':
-        # Confidence region is not possible if no covariance matrix is provided
-        if cov is None:
-            warnings.warn("Confidence intervals show the likely range of the mean "
-                          "future population level given the uncertainty of the "
-                          "parameter values, however since argument `cov` has value "
-                          "None no uncertainty in parameter values has been specified.",
-                          category=RuntimeWarning)
-            forecast_ = mean_curve(full_param, b_rate, d_rate, method, z0,
-                                   solver_methods, shift_times, n, rng)
-            ax1.plot(times, forecast_, color='k')
-        else:
-            # Create an array to store samples in
-            samples = np.zeros((k, times.shape[0]))
-            for idx in range(k):
-                # Sample new parameters
-                param_prop = parameter_sampler(param, cov, p_bounds, known_p,
-                                               idx_known_p, con, rng)
-                # Generate a mean curve corresponding to the sampled parameters
-                samples[idx, :] = mean_curve(param_prop, b_rate, d_rate,
-                                             method, z0, solver_methods,
-                                             shift_times, n, rng)
-                # Print a progress indicator (if requested)
-                if display:
-                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
-    elif interval == 'prediction':
-        # Create an array to store samples in
-        samples = np.zeros((k, times.shape[0]))
-        # If no covariance matrix is provided the prediction interval only accounts for model
-        # stochasticity
-        if cov is None:
-            for idx in range(k):
-                # Generate sample path of process using estimated parameters
-                samples[idx, :] = simulate.discrete(full_param, 'custom', z0,
-                                                    shift_times,
-                                                    b_rate=b_rate,
-                                                    d_rate=d_rate, k=1,
-                                                    method=method,
-                                                    seed=rng)
-                if display:
-                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
-        else:
-            for idx in range(k):
-                param_prop = parameter_sampler(param, cov, p_bounds, known_p,
-                                               idx_known_p, con, rng)
-                samples[idx, :] = simulate.discrete(param_prop, 'custom', z0,
-                                                    shift_times,
-                                                    b_rate=b_rate,
-                                                    d_rate=d_rate, k=1,
-                                                    method=method,
-                                                    seed=rng)
-                if display:
-                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
-    else:
-        raise TypeError("Argument 'interval' has an unknown value.")
-
-    # Determine number of partitions to split the samples into
-    if samples is not None:
-        m = len(percentiles)
-        SDist = np.percentile(samples, percentiles, axis=0).T
-        half = int(np.floor((m - 1) / 2))
-        ax1.plot(times, SDist[:, half], color='k')
-        for i in range(half-1):
-            ax1.fill_between(times, SDist[:, i+1], SDist[:, -(i + 2)],
-                             color=colormap((i+1) / half), label=labels[i])
-        ax1.legend(loc="upper left")
-    ax1.tick_params(labelsize=11.5)
-    ax1.set_xlabel(xlabel, fontsize=14)
-    ax1.set_xticks(xticks)
-    labels = [f'{t}' for t in xticks]
-    ax1.set_xticklabels(labels, rotation=rotation)
-    ax1.set_ylabel(ylabel, fontsize=14)
-    fig.tight_layout()
-    # If requested a tex file can be created
+    result = compute_forecast(
+        model, z0, times, param, cov=cov, interval=interval, method=method,
+        percentiles=percentiles, p_bounds=p_bounds, con=con, known_p=known_p,
+        idx_known_p=idx_known_p, k=k, n=n, seed=seed, display=display,
+        _warning_stacklevel=3, **options)
+    plot_forecast(result, labels=None if labels is DEFAULT_LABELS else labels, colormap=colormap, xlabel=xlabel,
+                  ylabel=ylabel, xticks=xticks, rotation=rotation)
     if isinstance(export, str):
         import tikzplotlib
         tikzplotlib.save(export + ".tex")
