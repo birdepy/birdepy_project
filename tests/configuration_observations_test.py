@@ -47,8 +47,8 @@ def test_optimizer_dispatch_uses_solver_defaults_without_mutating_options(monkey
     assert de_call["maxiter"] == 1000
     assert de_call["seed"] is None
     assert slsqp_call["options"] == {
-        "ftol": 1e-06, "eps": 1.4901161193847656e-08,
-        "disp": False, "maxiter": 100, "finite_diff_rel_step": None,
+        "ftol": 2.220446049250313e-09, "eps": None,
+        "disp": False, "maxiter": 1000, "finite_diff_rel_step": None,
     }
     assert de_options == {"polish": False}
     assert slsqp_options == {}
@@ -67,7 +67,7 @@ def test_differential_evolution_adapts_legacy_constraints_and_preserves_polish_i
 
     constraints = (
         {"type": "ineq", "fun": lambda x, offset: x[0] - offset, "args": (.5,)},
-        {"type": "eq", "fun": lambda x: x[0] - .75},
+        {"type": "INEQ", "fun": lambda x: .75 - x[0]},
     )
     monkeypatch.setattr(ut, "differential_evolution", fake_de)
     monkeypatch.setattr(ut, "minimize", fake_minimize)
@@ -77,6 +77,7 @@ def test_differential_evolution_adapts_legacy_constraints_and_preserves_polish_i
     adapted = calls["de"]["constraints"]
     assert len(adapted) == 2
     assert adapted[0].fun([.6]) == pytest.approx(.1)
+    assert adapted[0].jac == "2-point"
     assert adapted[1].fun([.75]) == pytest.approx(0)
     assert calls["polish"]["constraints"] is constraints
 
@@ -106,6 +107,13 @@ def test_differential_evolution_rejects_malformed_constraints(constraint, error)
                      "differential-evolution", {"polish": False})
 
 
+def test_differential_evolution_rejects_equality_constraints():
+    with pytest.raises(ValueError, match="use SLSQP"):
+        ut.minimize_(lambda p: p[0] ** 2, [1.], [[0., 2.]],
+                     {"type": "eq", "fun": lambda x: x[0] - 1},
+                     "differential-evolution", {"polish": False})
+
+
 def test_lower_case_documented_optimizer_name_is_normalized():
     result = bd.estimate([0, 1], [2, 1], [.5], [[.01, 2]], model="pure-death",
                          se_type="none", opt_method="l-bfgs-b")
@@ -115,7 +123,20 @@ def test_lower_case_documented_optimizer_name_is_normalized():
 def test_invalid_optimizer_type_is_rejected_before_estimation():
     with pytest.raises(ValueError, match="opt_method"):
         bd.estimate([0, 1], [2, 1], [.5], [[.01, 2]], model="pure-death",
-                    se_type="none", opt_method=None)
+                    se_type="none", opt_method=object())
+
+
+def test_none_optimizer_retains_scipy_default_selection():
+    result = bd.estimate([0, 1], [2, 1], [.5], [[.01, 2]], model="pure-death",
+                         se_type="none", opt_method=None)
+    assert result.success
+
+
+def test_em_rejects_scipy_constraints_with_a_clear_supported_framework_message():
+    with pytest.raises(TypeError, match="DNM and LSE"):
+        bd.estimate([0, 1], [2, 1], [.5], [[.01, 2]], model="pure-death",
+                    framework="em", con=LinearConstraint([[1.]], [.01], [2.]),
+                    max_it=1)
 
 
 @pytest.mark.parametrize(
@@ -138,6 +159,19 @@ def test_discrete_observations_preserve_range_paths():
     assert sum(transitions.values()) == 2
 
 
+def test_continuous_tied_events_and_singleton_paths_are_preserved():
+    tied = bd.estimate([0, 1, 1, 2], [3, 2, 1, 1], [.5], [[.01, 2]],
+                       model="pure-death", scheme="continuous", se_type="none")
+    assert tied.p[0] == pytest.approx(.5, rel=1e-5)
+    assert sum(data_sort([[0, 1], [5]], [[2, 1], [3]]).values()) == 1
+
+
+def test_estimation_rejects_paths_without_an_informative_interval():
+    with pytest.raises(ValueError, match="informative interval"):
+        bd.estimate([[0], [5]], [[2], [3]], [.5], [[.01, 2]],
+                    model="pure-death", scheme="continuous", se_type="none")
+
+
 @pytest.mark.parametrize(
     "times,populations,error",
     [
@@ -146,7 +180,6 @@ def test_discrete_observations_preserve_range_paths():
         ([0, 1], [-1, 1], "nonnegative integers"),
         ([0, 1], [1, 1.5], "nonnegative integers"),
         ([0, 1], [1, 1e30], "integer range"),
-        ([0, 0], [1, 2], "positive elapsed"),
         ([0, 1], [1, 3], "one event"),
     ],
 )
@@ -154,6 +187,11 @@ def test_continuous_observation_validation_rejects_invalid_paths(times, populati
     with pytest.raises(ValueError, match=error):
         bd.estimate(times, populations, [.5], [[.01, 2]], model="pure-death",
                     scheme="continuous", se_type="none")
+
+
+def test_discrete_observation_validation_rejects_tied_state_changes():
+    with pytest.raises(ValueError, match="positive elapsed"):
+        data_sort([0, 0], [1, 2])
 
 
 def test_translated_clocks_and_event_free_continuous_endpoint_are_equivalent():

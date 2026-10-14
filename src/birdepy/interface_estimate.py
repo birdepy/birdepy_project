@@ -6,10 +6,11 @@ from birdepy.interface_dnm import continuous_est_dnm
 from birdepy.interface_lse import discrete_est_lse
 from birdepy.interface_em import discrete_est_em
 import birdepy.utility as ut
+from collections.abc import Mapping
 from birdepy.configuration import normalize_optimizer
 from birdepy.observations import normalize_observations
 import time
-from scipy.optimize import OptimizeResult
+from scipy.optimize import LinearConstraint, NonlinearConstraint, OptimizeResult
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
 from birdepy import simulate
 
@@ -88,8 +89,9 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     con : {Constraint, dict} or List of {Constraint, dict}, optional
         Constraints definition for parameters (only for kwarg `opt_method`
         equal to 'differential-evolution', 'COBYLA', 'SLSQP' or
-        'trust-constr').   See :ref:`here <Parameter Constraints>` for more
-        information.
+        'trust-constr'). SciPy constraint objects are supported by DNM and
+        LSE; ABC and EM require legacy constraint dictionaries. See
+        :ref:`here <Parameter Constraints>` for more information.
 
     known_p : array_like, optional
         List of known parameter values. For built in models these must be in
@@ -242,7 +244,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     options = dict(options)
     if 'options' in options:
         nested_options = options['options']
-        if not isinstance(nested_options, dict):
+        if not isinstance(nested_options, Mapping):
             raise TypeError("Argument `options` must be a dictionary.")
         options = {**nested_options, **{key: value for key, value in options.items()
                                         if key != 'options'}}
@@ -254,11 +256,17 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     # Augment the options dictionary with items used by the optimization routines later
     options.setdefault('seed', seed)
-    options = ut.add_options(options)
 
     # Normalize both observation schemes before deriving truncation points or
     # handing data to their respective likelihood implementations.
     t_data, p_data = normalize_observations(t_data, p_data, scheme)
+    if not any(len(path) > 1 for path in t_data):
+        raise ValueError("At least one observation path must contain an informative interval.")
+    constraint_items = con if isinstance(con, (list, tuple)) else (con,)
+    if framework in {'abc', 'em'} and any(
+            isinstance(item, (LinearConstraint, NonlinearConstraint))
+            for item in constraint_items):
+        raise TypeError("SciPy constraint objects are supported by DNM and LSE; ABC and EM require constraint dictionaries.")
 
     # Set the random number generator
     if seed is None:
@@ -327,7 +335,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     elif scheme == 'discrete':
 
         # Sort the data into a more efficient format
-        data = ut.data_sort(t_data, p_data)
+        data = ut.data_sort(t_data, p_data, _normalized=True)
 
         # Each of the frameworks for obtaining parameter estimates are contained in their own
         # module interface_* where * depends on the framework. This control structure determines

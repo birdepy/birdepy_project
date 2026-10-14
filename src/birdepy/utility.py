@@ -117,7 +117,7 @@ def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
     return
 
 
-def data_sort(t_data, p_data):
+def data_sort(t_data, p_data, _normalized=False):
     """
     Data sorter to improve the efficiency of the :func:`birdepy` package.
     Counts how many times each probability_ z0 -> zt occurs, where transitions
@@ -146,19 +146,15 @@ def data_sort(t_data, p_data):
         an observed transition occurs.
 
     """
-    t_data, p_data = normalize_observations(t_data, p_data, "discrete")
+    if not _normalized:
+        t_data, p_data = normalize_observations(t_data, p_data, "discrete")
 
-    all_transitions = []
+    all_transitions = Counter()
     for idx1 in range(len(p_data)):
-        for idx2 in range(len(p_data[idx1]) - 1):
-            all_transitions.append(
-                (
-                    p_data[idx1][idx2],
-                    p_data[idx1][idx2 + 1],
-                    t_data[idx1][idx2 + 1] - t_data[idx1][idx2],
-                )
-            )
-    return Counter(all_transitions)
+        all_transitions.update(zip(p_data[idx1][:-1].tolist(),
+                                   p_data[idx1][1:].tolist(),
+                                   np.diff(t_data[idx1]).tolist()))
+    return all_transitions
 
 
 def data_sort_2(data):
