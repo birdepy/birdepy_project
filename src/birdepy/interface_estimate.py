@@ -1,5 +1,6 @@
 import numpy as np
 import warnings
+from birdepy.models import get_model
 from birdepy.interface_abc import discrete_est_abc
 from birdepy.interface_dnm import discrete_est_dnm
 from birdepy.interface_dnm import continuous_est_dnm
@@ -132,7 +133,12 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         `capacity` is the estimated carrying capacity.
 
         A numeric `cov` is always a two-dimensional matrix, including when
-        estimating one parameter. For ABC, `p` and `cov` summarize the weighted
+        estimating one parameter. DNM and EM return the string
+        ``"Covariance matrix could not be determined."`` for singular,
+        nonfinite, or non-positive-definite observed information. They no longer
+        return nonfinite covariance arrays for those fits. Successful internal
+        covariance calculations also have shape ``(n, n)`` for one parameter.
+        For ABC, `p` and `cov` summarize the weighted
         posterior population and `se` contains posterior standard deviations.
         `samples` contains the accepted particles for each ABC iteration;
         `sample_weights` contains their corresponding normalized importance
@@ -660,11 +666,11 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
 
     # Determine capacity attribute of the output
     if model != 'custom':
-        # Build a function that returns fixed points of fluid model
-        capacity_finder = ut.higher_zf_bld(model)
-        # Use function to find fixed points in terms of estimate of unknown parameters augmented
-        # with known parameters
-        capacity = np.ceil(capacity_finder(ut.p_bld(np.array(p_est), idx_known_p, known_p)))
+        capacity_finder = get_model(model).fixed_points
+        if capacity_finder is None:
+            capacity = "Functionality not available for this model."
+        else:
+            capacity = np.ceil(capacity_finder(ut.p_bld(p_est, idx_known_p, known_p)))
     else:
         capacity = "Functionality not available for custom models."
 

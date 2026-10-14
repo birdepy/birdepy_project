@@ -89,3 +89,13 @@ def test_ilt_rate_products_broadcast_constant_custom_rates_and_keep_empty_produc
     assert mu_product(5, 2, [3], constant) == 27
     assert lam_product(2, 2, [3], constant) == 1
     assert mu_product(2, 2, [3], constant) == 1
+
+
+def test_estimation_without_optional_fixed_points_still_returns_a_fit(monkeypatch):
+    monkeypatch.setitem(models.MODEL_REGISTRY, 'death-without-fluid',
+                        models.ModelSpec('death-without-fluid', lambda z, p: 0*z,
+                                         lambda z, p: p[0]*z))
+    result = bd.estimate([0, 1, 2], [3, 2, 1], [.5], [[.01, 3]],
+                         model='death-without-fluid', se_type='none')
+    assert result.success
+    assert result.capacity == 'Functionality not available for this model.'
