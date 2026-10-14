@@ -24,7 +24,7 @@ def normalize_observations(t_data, p_data, scheme):
     normalized_times, normalized_populations = [], []
     max_population = np.nextafter(float(np.iinfo(np.int64).max), -np.inf)
     for index, (time_path, population_path) in enumerate(zip(times, populations)):
-        time_path = _as_numeric_vector(time_path, "t_data", index)
+        time_path = _as_numeric_vector(time_path, "t_data", index).astype(float)
         population_path = _as_numeric_vector(population_path, "p_data", index)
         if len(time_path) != len(population_path):
             raise ValueError("Each `t_data` path must have the same length as its `p_data` path.")
@@ -33,7 +33,6 @@ def normalize_observations(t_data, p_data, scheme):
         if not np.all(np.isfinite(time_path)):
             raise ValueError("Observation times must be finite.")
         time_differences = np.diff(time_path)
-        population_differences = np.diff(population_path)
         if np.any(time_differences < 0):
             raise ValueError("Observation times must be nondecreasing within each path.")
         if not np.all(np.isfinite(population_path)):
@@ -42,6 +41,7 @@ def normalize_observations(t_data, p_data, scheme):
             raise ValueError("Observed populations must be nonnegative integers.")
         if np.any(population_path >= max_population):
             raise ValueError("Observed populations must fit in the platform integer range.")
+        population_differences = np.diff(population_path)
         simultaneous_changes = (time_differences == 0) & (population_differences != 0)
         if scheme == "discrete" and np.any(simultaneous_changes):
             raise ValueError("Population changes require a positive elapsed observation time.")
@@ -66,10 +66,8 @@ def _as_paths(data, name):
         raise ValueError(f"Argument `{name}` must be a one- or two-dimensional collection of paths.")
     if not isinstance(data, Sequence):
         try:
-            if len(data) == 0:
-                raise ValueError(f"Argument `{name}` must contain at least one observation path.")
-            first = data[0]
-        except (TypeError, KeyError, IndexError) as error:
+            return _as_paths(np.asarray(data), name)
+        except (TypeError, ValueError) as error:
             raise ValueError(f"Argument `{name}` must contain at least one observation path.") from error
     else:
         if not data:
@@ -87,7 +85,6 @@ def _as_numeric_vector(path, name, index):
         raise ValueError(f"Path {index} in `{name}` must be numeric.") from error
     if raw.dtype.kind not in "iufb":
         raise ValueError(f"Path {index} in `{name}` must be numeric.")
-    array = raw.astype(float, copy=False)
-    if array.ndim != 1:
+    if raw.ndim != 1:
         raise ValueError(f"Path {index} in `{name}` must be one-dimensional.")
-    return array
+    return raw

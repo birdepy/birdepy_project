@@ -88,8 +88,8 @@ def differential_evolution_constraints(constraints):
     polishing pass.  Native SciPy linear and nonlinear constraints are already
     accepted by differential evolution and are passed through unchanged.
     """
-    if constraints == ():
-        return (), constraints
+    if constraints == () or constraints == []:
+        return (), ()
     if isinstance(constraints, (Mapping, LinearConstraint, NonlinearConstraint)):
         items = (constraints,)
     elif isinstance(constraints, (list, tuple)):
@@ -128,5 +128,11 @@ def _adapt_constraint(constraint):
         return function(x, *args)
 
     lower, upper = (0, 0) if kind == "eq" else (0, float("inf"))
+    jacobian = constraint.get("jac", "2-point")
+    if callable(jacobian):
+        def constrained_jacobian(x, jacobian=jacobian, args=args):
+            return jacobian(x, *args)
+    else:
+        constrained_jacobian = jacobian
     return NonlinearConstraint(constrained_function, lower, upper,
-                               jac=constraint.get("jac", "2-point"))
+                               jac=constrained_jacobian)

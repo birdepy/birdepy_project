@@ -7,10 +7,10 @@ from birdepy.interface_lse import discrete_est_lse
 from birdepy.interface_em import discrete_est_em
 import birdepy.utility as ut
 from collections.abc import Mapping
-from birdepy.configuration import normalize_optimizer
 from birdepy.observations import normalize_observations
 import time
-from scipy.optimize import LinearConstraint, NonlinearConstraint, OptimizeResult
+from scipy.optimize import OptimizeResult
+from scipy.optimize import LinearConstraint, NonlinearConstraint
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
 from birdepy import simulate
 
@@ -267,6 +267,10 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             isinstance(item, (LinearConstraint, NonlinearConstraint))
             for item in constraint_items):
         raise TypeError("SciPy constraint objects are supported by DNM and LSE; ABC and EM require constraint dictionaries.")
+    if framework == 'abc' and any(
+            isinstance(item, Mapping) and str(item.get('type', '')).lower() == 'eq'
+            for item in constraint_items):
+        raise TypeError("ABC supports inequality constraint dictionaries only.")
 
     # Set the random number generator
     if seed is None:
@@ -311,7 +315,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             opt_method = options['opt_method']
         else:
             opt_method = 'L-BFGS-B'
-        opt_method = normalize_optimizer(opt_method)
 
         if framework != 'dnm':
             raise TypeError("Argument `framework` must be 'dnm' when "
@@ -433,7 +436,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 else:
                     opt_method = 'SLSQP'
                 options['opt_method'] = opt_method
-            opt_method = normalize_optimizer(opt_method)
 
             # Obtain estimate and associated covariance matrix
             opt, cov = discrete_est_dnm(data, likelihood, model,
@@ -460,7 +462,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 opt_method = 'SLSQP'
             else:
                 opt_method = 'SLSQP'
-            opt_method = normalize_optimizer(opt_method)
             if 'technique' in options.keys():
                 technique = options['technique']
             else:
@@ -521,7 +522,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             else:
                 opt_method = 'L-BFGS-B'
                 options['opt_method'] = opt_method
-            opt_method = normalize_optimizer(opt_method)
             if 'squares' in options.keys():
                 squares = options['squares']
             else:

@@ -2,6 +2,8 @@
 
 import numpy as np
 import pytest
+from collections import ChainMap
+from types import MappingProxyType
 from scipy.optimize import LinearConstraint, OptimizeResult
 
 import birdepy as bd
@@ -157,6 +159,35 @@ def test_discrete_observations_accept_tuple_array_and_ragged_paths(times, popula
 def test_discrete_observations_preserve_range_paths():
     transitions = data_sort(range(3), range(2, 5))
     assert sum(transitions.values()) == 2
+
+
+class _ArrayPath:
+    def __init__(self, values):
+        self.values = values
+
+    def __array__(self, dtype=None):
+        return np.asarray(self.values, dtype=dtype)
+
+
+def test_discrete_observations_accept_array_protocol_paths():
+    assert sum(data_sort(_ArrayPath([0, 1]), _ArrayPath([2, 1])).values()) == 1
+
+
+@pytest.mark.parametrize("values", [["1", "2"], [None, 2], [2, 2 ** 31 + 1]])
+def test_population_normalization_rejects_non_numeric_and_preserves_int64(values):
+    if values[-1] == 2 ** 31 + 1:
+        result = data_sort([0, 1], values)
+        assert next(iter(result))[1] == 2 ** 31 + 1
+    else:
+        with pytest.raises(ValueError, match="numeric"):
+            data_sort([0, 1], values)
+
+
+@pytest.mark.parametrize("nested", [MappingProxyType({"z_trunc": [0, 4]}), ChainMap({"z_trunc": [0, 4]})])
+def test_estimation_accepts_mapping_nested_options(nested):
+    result = bd.estimate([0, 1], [2, 1], [.5], [[.01, 2]], model="pure-death",
+                         se_type="none", options=nested)
+    assert result.success
 
 
 def test_continuous_tied_events_and_singleton_paths_are_preserved():
