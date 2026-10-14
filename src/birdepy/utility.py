@@ -79,7 +79,7 @@ def confidence_region(mean, cov, obs, se_type, xlabel, ylabel, export):
 
     fig, (ax) = plt.subplots(figsize=(7, 5))
 
-    labels = ["$50\%$", "$80\%$", "$95\%$"]
+    labels = [r"$50\%$", r"$80\%$", r"$95\%$"]
     linestyles = [":", "--", "-"]
 
     for i in range(len(chisq)):
@@ -511,11 +511,14 @@ def cme(fun, t, k):
     Numerical inverse Laplace transformation using concentrated matrix
     exponential distributions. Performance Evaluation, 137, 102067.
     """
-    if "cme_params" not in globals() or globals()["cme_k"] != k:
+    if ("cme_params" not in globals() or globals()["cme_k"] != k
+            or globals().get("cme_dps") != mp.mp.dps):
         global cme_params
         global cme_k
         global cme_eta
         global cme_beta
+        global cme_dps
+        cme_dps = mp.mp.dps
         cme_k = k
         iltcme_params = get_iltcme()
         cme_params = iltcme_params[0]
@@ -700,7 +703,6 @@ def minimize_(error_fun, p0, p_bounds, con, opt_method, options):
                 "eps": options["eps"],
                 "maxfun": options["maxfun"],
                 "maxiter": options["maxiter"],
-                "iprint": options["iprint"],
                 "maxls": options["maxls"],
                 "finite_diff_rel_step": options["finite_diff_rel_step"],
             },
@@ -759,6 +761,6 @@ def trap_int(y, x):
 
 
 def get_iltcme():
-    with resources.open_text("birdepy.data_files", "iltcme.json") as data_file:
+    with resources.files("birdepy.data_files").joinpath("iltcme.json").open() as data_file:
         data = json.load(data_file)
     return data

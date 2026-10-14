@@ -226,18 +226,14 @@ def probability(z0, zt, t, param, model='Verhulst', method='expm', **options):
             lentz_eps = options['lentz_eps']
         else:
             lentz_eps = 1e-6
-        if 'precision' in options.keys():
-            mp.dps = options['precision']
-        else:
-            mp.dps = 1000
         if 'k' in options.keys():
             k = options['k']
         else:
             k = 25
 
-        return probability_ilt.probability_ilt(z0, zt, t, param, b_rate,
-                                               d_rate,
-                                               lentz_eps, laplace_method, k)
+        with mp.workdps(options.get('precision', 1000)):
+            return probability_ilt.probability_ilt(
+                z0, zt, t, param, b_rate, d_rate, lentz_eps, laplace_method, k)
 
     elif method == 'oua':
         if 'h_fun' in options.keys():

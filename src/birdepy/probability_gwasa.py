@@ -5,7 +5,7 @@ import warnings
 
 
 def w_fun(lam, mu, _z0, _zt, t):
-    """
+    r"""
     Computes an important part of the saddlepoint approximation for a linear
     linear-and-death process. Corresponds to $\tilde s = (2A)^{-1}(-B+\sqrt{B^2-4AC})$
     in Lemma 1 of reference [1].
@@ -40,7 +40,7 @@ def w_fun(lam, mu, _z0, _zt, t):
 
 
 def w_fun_high_precision(lam, mu, _z0, _zt, t):
-    """
+    r"""
     Computes an important part of the saddlepoint approximation for a linear
     linear-and-death process in high precision. Corresponds to
     $\tilde s = (2A)^{-1}(-B+\sqrt{B^2-4AC})$ in Lemma 1 of reference [1].
@@ -216,7 +216,8 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
                 try:
                     w = w_fun(lam, mu, _z0, _zt, _t)
                 except:
-                    w = w_fun_high_precision(lam, mu, _z0, _zt, _t)
+                    with mp.workdps(max(1000, mp.mp.dps)):
+                        w = w_fun_high_precision(lam, mu, _z0, _zt, _t)
             if w == 0:
                 w = 1e-100
                 warnings.warn(
@@ -247,89 +248,89 @@ def probability_gwasa(z0, zt, t, param, b_rate, d_rate, anchor):
                     pr = ((p1 / p2) ** _z0 * (p3 / p4) ** (-0.5)) / \
                          (np.sqrt(2 * np.pi * _z0) * w ** _zt)
                 except:
-                    mp.dps = 1000
-                    w = mp.mpmathify(w)
-                    if lam == mu:
-                        p1 = mp.fadd(mp.fprod((lam,
-                                               _t,
-                                               mp.fsub(1.0, w))),
-                                     w)
-                        p2 = mp.fsub(1.0,
-                                     mp.fprod((lam,
-                                               _t,
-                                               mp.fsub(w, 1))
-                                              )
-                                     )
-                        p3 = mp.fprod((lam,
-                                       _t,
-                                       w,
-                                       mp.fsum((mp.fprod((-lam,
-                                                          _t,
-                                                          mp.power(w, 2))),
-                                                mp.fmul(lam, _t),
-                                                mp.power(w, 2),
-                                                1.0))
-                                       ))
-                        p4 = mp.fmul(
-                            mp.power(mp.fsub(mp.fprod((lam,
-                                                       _t,
-                                                       mp.fsub(w, 1))),
-                                             1.0), 2),
-                            mp.power(mp.fsum((mp.fprod((-lam,
-                                                        _t,
-                                                        w)),
-                                              mp.fmul(lam, _t),
-                                              w)), 2)
-                        )
-                    else:
-                        m = mp.exp(mp.fmul(mp.fsub(lam, mu), _t))
-                        p1 = mp.fsum((mu,
-                                      mp.fmul(-lam, w),
-                                      mp.fprod((mu,
-                                                mp.fsub(w, 1),
-                                                m))
-                                      ))
-                        p2 = mp.fsum((mu,
-                                      mp.fmul(-lam, w),
-                                      mp.fprod((lam,
-                                                mp.fsub(w, 1),
-                                                m))))
-                        p3 = -mp.fprod(
-                            (mp.expm1(mp.fmul(mp.fsub(lam, mu), _t)),
-                             m,
-                             w,
-                             mp.power(mp.fsub(lam, mu), 2),
-                             mp.fsum((-mp.power(mp.fmul(lam, w), 2),
-                                      mp.fprod((lam,
-                                                m,
-                                                mu,
-                                                mp.fsub(
+                    with mp.workdps(max(1000, mp.mp.dps)):
+                        w = mp.mpmathify(w)
+                        if lam == mu:
+                            p1 = mp.fadd(mp.fprod((lam,
+                                                   _t,
+                                                   mp.fsub(1.0, w))),
+                                         w)
+                            p2 = mp.fsub(1.0,
+                                         mp.fprod((lam,
+                                                   _t,
+                                                   mp.fsub(w, 1))
+                                                  )
+                                         )
+                            p3 = mp.fprod((lam,
+                                           _t,
+                                           w,
+                                           mp.fsum((mp.fprod((-lam,
+                                                              _t,
+                                                              mp.power(w, 2))),
+                                                    mp.fmul(lam, _t),
                                                     mp.power(w, 2),
-                                                    1.0)
-                                                )),
-                                      mp.power(mu, 2)
-                                      ))))
-                        p4 = mp.fmul(
-                            mp.power(
-                                mp.fadd(mp.fmul(lam,
-                                                mp.fsub(
-                                                    mp.fmul(m,
-                                                            mp.fsub(w, 1.0)),
-                                                    w)),
-                                        mu),
-                                2),
-                            mp.power(mp.fadd(mp.fmul(lam, w),
-                                             mp.fmul(mu,
-                                                     mp.fsum((-mp.fmul(m, w),
-                                                              m,
-                                                              -1.0)))),
-                                     2))
-                    pr = mp.fprod((mp.fdiv(1.0,
-                                           mp.fmul(mp.sqrt(mp.fprod(
-                                               (2.0, mp.pi, _z0))),
-                                               mp.power(w, _zt))),
-                                   mp.power(mp.fdiv(p1, p2), _z0),
-                                   mp.power(mp.fdiv(p3, p4), -0.5)))
+                                                    1.0))
+                                           ))
+                            p4 = mp.fmul(
+                                mp.power(mp.fsub(mp.fprod((lam,
+                                                           _t,
+                                                           mp.fsub(w, 1))),
+                                                 1.0), 2),
+                                mp.power(mp.fsum((mp.fprod((-lam,
+                                                            _t,
+                                                            w)),
+                                                  mp.fmul(lam, _t),
+                                                  w)), 2)
+                            )
+                        else:
+                            m = mp.exp(mp.fmul(mp.fsub(lam, mu), _t))
+                            p1 = mp.fsum((mu,
+                                          mp.fmul(-lam, w),
+                                          mp.fprod((mu,
+                                                    mp.fsub(w, 1),
+                                                    m))
+                                          ))
+                            p2 = mp.fsum((mu,
+                                          mp.fmul(-lam, w),
+                                          mp.fprod((lam,
+                                                    mp.fsub(w, 1),
+                                                    m))))
+                            p3 = -mp.fprod(
+                                (mp.expm1(mp.fmul(mp.fsub(lam, mu), _t)),
+                                 m,
+                                 w,
+                                 mp.power(mp.fsub(lam, mu), 2),
+                                 mp.fsum((-mp.power(mp.fmul(lam, w), 2),
+                                          mp.fprod((lam,
+                                                    m,
+                                                    mu,
+                                                    mp.fsub(
+                                                        mp.power(w, 2),
+                                                        1.0)
+                                                    )),
+                                          mp.power(mu, 2)
+                                          ))))
+                            p4 = mp.fmul(
+                                mp.power(
+                                    mp.fadd(mp.fmul(lam,
+                                                    mp.fsub(
+                                                        mp.fmul(m,
+                                                                mp.fsub(w, 1.0)),
+                                                        w)),
+                                            mu),
+                                    2),
+                                mp.power(mp.fadd(mp.fmul(lam, w),
+                                                 mp.fmul(mu,
+                                                         mp.fsum((-mp.fmul(m, w),
+                                                                  m,
+                                                                  -1.0)))),
+                                         2))
+                        pr = mp.fprod((mp.fdiv(1.0,
+                                               mp.fmul(mp.sqrt(mp.fprod(
+                                                   (2.0, mp.pi, _z0))),
+                                                   mp.power(w, _zt))),
+                                       mp.power(mp.fdiv(p1, p2), _z0),
+                                       mp.power(mp.fdiv(p3, p4), -0.5)))
         # Return a float (not a high precision mpmath object)
         if type(pr) != float:
             pr = float(mp.re(pr))
