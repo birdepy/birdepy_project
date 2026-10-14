@@ -79,17 +79,16 @@ def test_parameter_sampler_accepts_single_vector_scipy_constraint():
     np.testing.assert_array_equal(proposal, [.6, .4])
 
 
-def test_parameter_sampler_honours_mixed_vector_and_equality_constraints():
+def test_parameter_sampler_rejects_equality_constraints_up_front():
     constraints = [
         {'type': 'eq', 'fun': lambda p, target: np.array([p[0] - target]),
          'args': (.6,)},
         NonlinearConstraint(lambda p: np.array([p[0] + p[1], p[1]]),
                             [.9, .3], [1.1, .5]),
     ]
-    proposal = parameter_sampler(
-        np.array([.6, .4]), np.zeros((2, 2)), None, (), (), constraints,
-        np.random.default_rng(42))
-    np.testing.assert_array_equal(proposal, [.6, .4])
+    with pytest.raises(ValueError, match='Equality constraints'):
+        parameter_sampler(np.array([.6, .4]), np.zeros((2, 2)), None, (), (),
+                          constraints, np.random.default_rng(42))
 
 
 def test_parameter_sampler_rejects_nonfinite_constraint_values():

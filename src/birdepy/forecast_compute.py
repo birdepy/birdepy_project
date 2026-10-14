@@ -12,7 +12,7 @@ from birdepy.results import ForecastResult
 
 def _constraints_are_feasible(constraints, proposal):
     """Check SciPy and dictionary constraints against an unknown proposal."""
-    if constraints is None or constraints == ():
+    if constraints is None or (isinstance(constraints, (tuple, list)) and not constraints):
         return True
     if isinstance(constraints, dict) or (hasattr(constraints, 'lb')
                                          and hasattr(constraints, 'ub')):
@@ -24,14 +24,19 @@ def _constraints_are_feasible(constraints, proposal):
             if not callable(fun):
                 raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
             value = np.asarray(fun(proposal, *constraint.get('args', ())))
-            constraint_type = constraint.get('type', 'ineq')
+            constraint_type = constraint.get('type')
+            if not isinstance(constraint_type, str):
+                raise ValueError("Constraint dictionaries must provide type 'ineq'.")
+            constraint_type = constraint_type.lower()
             if constraint_type == 'eq':
-                feasible = np.all(value == 0)
+                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
             elif constraint_type == 'ineq':
                 feasible = np.all(value >= 0)
             else:
                 raise ValueError("Constraint dictionaries must have type 'eq' or 'ineq'.")
         elif hasattr(constraint, 'lb') and hasattr(constraint, 'ub'):
+            if np.any(np.asarray(constraint.lb) == np.asarray(constraint.ub)):
+                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
             if hasattr(constraint, 'fun'):
                 value = np.asarray(constraint.fun(proposal))
             elif hasattr(constraint, 'A'):
@@ -41,7 +46,7 @@ def _constraints_are_feasible(constraints, proposal):
             feasible = np.all(value >= constraint.lb) and np.all(value <= constraint.ub)
         else:
             raise TypeError("Constraints must be dictionaries or SciPy constraints.")
-        if not np.all(np.isfinite(value)) or not feasible:
+        if np.any(np.isnan(value)) or not feasible:
             return False
     return True
 
@@ -53,19 +58,24 @@ def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng,
     ``max_rejections`` bounds rejection sampling so contradictory bounds or
     constraints fail explicitly rather than hanging indefinitely.
     """
-    if not isinstance(max_rejections, (int, np.integer)) or max_rejections <= 0:
+    param = np.atleast_1d(param)
+    if (not isinstance(max_rejections, (int, np.integer,)) or isinstance(max_rejections, bool)
+            or max_rejections <= 0):
         raise ValueError("max_rejections must be a positive integer.")
     if p_bounds is not None:
         if len(p_bounds) != len(param):
             raise ValueError("p_bounds must contain one pair for each unknown parameter.")
         for lower, upper in p_bounds:
+            lower = -np.inf if lower is None else lower
+            upper = np.inf if upper is None else upper
             if np.isnan(lower) or np.isnan(upper) or lower > upper:
                 raise ValueError("Each parameter bound must not contain NaN and have lower <= upper.")
 
     for _ in range(max_rejections):
         param_prop = rng.multivariate_normal(param, cov)
         if p_bounds is not None and any(
-                value < bound[0] or value > bound[1]
+                value < (-np.inf if bound[0] is None else bound[0])
+                or value > (np.inf if bound[1] is None else bound[1])
                 for value, bound in zip(param_prop, p_bounds)):
             continue
         # Constraints intentionally apply to unknown parameters, before their
@@ -192,7 +202,9 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
 
     if samples is not None:
         quantiles = np.percentile(samples, percentiles, axis=0).T
-        central = quantiles[:, int(np.floor((len(percentiles) - 1) / 2))]
+        # The public central curve is always the actual median, independent of
+        # which interval endpoints the caller requested.
+        central = np.percentile(samples, 50, axis=0)
         mean = np.mean(samples, axis=0)
 
     return ForecastResult(

@@ -15,7 +15,7 @@ class EstimationOutput(OptimizeResult):
     """
 
 
-@dataclass
+@dataclass(eq=False)
 class ForecastResult:
     """Numerical output of :func:`birdepy.compute_forecast`.
 

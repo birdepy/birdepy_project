@@ -11,13 +11,14 @@ def plot_forecast(result, ax=None, labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
 
     Returns the axis used for rendering. No numerical calculation occurs here.
     """
-    if ax is None:
+    created_axis = ax is None
+    if created_axis:
         _, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
     times = result.times
-    if isinstance(xticks, str) and xticks == 'default':
+    if isinstance(xticks, str):
         xticks = times
     if ylabel == 'default':
-        ylabel = r'$\mathbb{E} Z(t)$' if result.interval == 'confidence' else '$Z(t)'
+        ylabel = r'$\mathbb{E} Z(t)$' if result.interval == 'confidence' else '$Z(t)$'
 
     if result.quantiles is None:
         ax.plot(times, result.central, color='k')
@@ -37,5 +38,6 @@ def plot_forecast(result, ax=None, labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
     ax.set_xticks(xticks)
     ax.set_xticklabels([f'{t}' for t in xticks], rotation=rotation)
     ax.set_ylabel(ylabel, fontsize=14)
-    ax.figure.tight_layout()
+    if created_axis:
+        ax.figure.tight_layout()
     return ax
