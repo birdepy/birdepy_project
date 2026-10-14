@@ -48,7 +48,7 @@
     },
     {
       "description": "Python version changes require a deliberate support-policy change.",
-      "matchPackageNames": [
+      "matchDepNames": [
         "python"
       ],
       "enabled": false
