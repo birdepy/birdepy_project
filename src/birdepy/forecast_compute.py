@@ -9,6 +9,33 @@ from birdepy import simulate
 import birdepy.utility as ut
 from birdepy.results import ForecastResult
 
+DEFAULT_MAX_REJECTIONS = 10_000
+
+
+def _validate_constraints(constraints):
+    """Reject unsupported or malformed constraints before consuming RNG state."""
+    if constraints is None or (isinstance(constraints, (tuple, list)) and not constraints):
+        return
+    items = (constraints,) if isinstance(constraints, dict) or hasattr(constraints, 'lb') else constraints
+    try:
+        iterator = iter(items)
+    except TypeError as error:
+        raise TypeError("Constraints must be dictionaries or SciPy constraints.") from error
+    for constraint in iterator:
+        if isinstance(constraint, dict):
+            if not callable(constraint.get('fun')):
+                raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
+            kind = constraint.get('type')
+            if not isinstance(kind, str) or kind.lower() not in ('ineq', 'eq'):
+                raise ValueError("Constraint dictionaries must have type 'ineq' or 'eq'.")
+            if kind.lower() == 'eq':
+                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
+        elif hasattr(constraint, 'lb') and hasattr(constraint, 'ub'):
+            if np.any(np.asarray(constraint.lb) == np.asarray(constraint.ub)):
+                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
+        else:
+            raise TypeError("Constraints must be dictionaries or SciPy constraints.")
+
 
 def _constraints_are_feasible(constraints, proposal):
     """Check SciPy and dictionary constraints against an unknown proposal."""
@@ -52,13 +79,14 @@ def _constraints_are_feasible(constraints, proposal):
 
 
 def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng,
-                      max_rejections=10_000):
+                      max_rejections=DEFAULT_MAX_REJECTIONS):
     """Draw one bounded, constrained parameter vector.
 
     ``max_rejections`` bounds rejection sampling so contradictory bounds or
     constraints fail explicitly rather than hanging indefinitely.
     """
     param = np.atleast_1d(param)
+    _validate_constraints(con)
     if (not isinstance(max_rejections, (int, np.integer,)) or isinstance(max_rejections, bool)
             or max_rejections <= 0):
         raise ValueError("max_rejections must be a positive integer.")
@@ -116,7 +144,8 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
 def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
                      method=None, percentiles=(0, 2.5, 10, 25, 50, 75, 90, 97.5, 100),
                      p_bounds=None, con=(), known_p=(), idx_known_p=(), k=10 ** 3,
-                     n=10 ** 3, seed=None, display=False, **options):
+                     n=10 ** 3, seed=None, display=False, *,
+                     max_rejections=DEFAULT_MAX_REJECTIONS, **options):
     """Compute forecast curves and intervals without creating a plot.
 
     Confidence samples are future *mean* trajectories. Prediction samples are
@@ -142,6 +171,9 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
     if (not isinstance(k, (int, np.integer)) or not isinstance(n, (int, np.integer))
             or k <= 0 or n <= 0):
         raise ValueError("k and n must be positive integers.")
+    if (not isinstance(max_rejections, (int, np.integer)) or isinstance(max_rejections, bool)
+            or max_rejections <= 0):
+        raise ValueError("max_rejections must be a positive integer.")
 
     if interval == 'confidence' and method is None:
         method = 'fm'
@@ -173,7 +205,7 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
                           "future population level given the uncertainty of the "
                           "parameter values, however since argument `cov` has value "
                           "None no uncertainty in parameter values has been specified.",
-                          category=RuntimeWarning)
+                          category=RuntimeWarning, stacklevel=2)
             central = mean_curve(full_param, b_rate, d_rate, method, z0,
                                 solver_methods, shift_times, n, rng)
             mean = central.copy()
@@ -183,7 +215,7 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
             for idx in range(k):
                 param_prop = parameter_sampler(param, cov, p_bounds, known_p,
                                                idx_known_p, con, rng,
-                                               options.get('max_rejections', 10_000))
+                                               max_rejections)
                 samples[idx, :] = mean_curve(param_prop, b_rate, d_rate, method, z0,
                                              solver_methods, shift_times, n, rng)
                 if display:
@@ -193,7 +225,7 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
         for idx in range(k):
             param_prop = full_param if cov is None else parameter_sampler(
                 param, cov, p_bounds, known_p, idx_known_p, con, rng,
-                options.get('max_rejections', 10_000))
+                max_rejections)
             samples[idx, :] = simulate.discrete(
                 param_prop, 'custom', z0, shift_times, b_rate=b_rate, d_rate=d_rate,
                 k=1, method=method, seed=rng)
@@ -212,4 +244,5 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
         mean=np.array(mean, copy=True), quantiles=quantiles,
         percentiles=np.array(percentiles, copy=True), samples=samples,
         interval=interval, method=method,
-        metadata={'model': model, 'k': k, 'n': n, 'has_covariance': cov is not None})
+        metadata={'model': model, 'n_samples': 0 if samples is None else samples.shape[0],
+                  'has_covariance': cov is not None})

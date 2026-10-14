@@ -20,7 +20,7 @@ class ForecastResult:
     """Numerical output of :func:`birdepy.compute_forecast`.
 
     ``central`` is the curve used by the legacy forecast plot: the estimated
-    mean when there are no interval samples and the middle requested quantile
+    mean when there are no interval samples and the sample median
     otherwise. ``mean`` is the arithmetic mean of samples when samples are
     present. Fluid-method curves approximate the mean deterministically;
     simulation-based mean curves are Monte Carlo estimates. Quantiles have
