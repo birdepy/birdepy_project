@@ -200,40 +200,36 @@ def data_sort_2(data):
     return sorted_data
 
 
-def _legacy_model_error(model, message):
-    """Translate registry failures to the public utility error contract."""
+def _builtin_capability(model, capability, message):
+    """Return a built-in capability using the legacy public error message."""
     try:
-        return get_model(model)
-    except UnknownModelError as error:
+        return get_model(model).require(capability)
+    except (UnknownModelError, ModelCapabilityError) as error:
         raise TypeError(message) from error
 
 
 def higher_birth(model):
     """Return the registered birth-rate function for a built-in model."""
-    return _legacy_model_error(model, "Argument 'model' has an unknown value.").birth_rate
+    return _builtin_capability(
+        model, "birth_rate", "Argument 'model' has an unknown value."
+    )
 
 
 def higher_death(model):
     """Return the registered death-rate function for a built-in model."""
-    return _legacy_model_error(model, "Argument 'model' has an unknown value.").death_rate
+    return _builtin_capability(
+        model, "death_rate", "Argument 'model' has an unknown value."
+    )
 
 
 def higher_h_fun(model):
     """Return the registered fluid-drift derivative for a built-in model."""
-    spec = _legacy_model_error(model, "Unknown model.")
-    try:
-        return spec.require("drift_derivative")
-    except ModelCapabilityError as error:
-        raise TypeError("Unknown model.") from error
+    return _builtin_capability(model, "drift_derivative", "Unknown model.")
 
 
 def higher_zf_bld(model):
     """Return the registered fluid fixed-point function for a built-in model."""
-    spec = _legacy_model_error(model, "Unknown model.")
-    try:
-        return spec.require("fixed_points")
-    except ModelCapabilityError as error:
-        raise TypeError("Unknown model.") from error
+    return _builtin_capability(model, "fixed_points", "Unknown model.")
 
 
 def q_mat_bld(z_min, z_max, p, b_rate, d_rate):

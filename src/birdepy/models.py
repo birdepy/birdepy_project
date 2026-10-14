@@ -1,8 +1,8 @@
 """Specifications for the built-in CPU birth-and-death models.
 
 The GPU implementation intentionally keeps its compiled kernels separate.  A
-``ModelSpec`` describes the capabilities available through the CPU interfaces;
-custom models provide rates only unless a caller supplies additional functions.
+``ModelSpec`` describes the capabilities of the registered CPU built-ins.
+Custom rate callables retain their existing interface-specific handling.
 """
 
 from dataclasses import dataclass
@@ -10,9 +10,7 @@ from typing import Callable, Optional
 
 import numpy as np
 
-
-Rate = Callable[[object, object], object]
-FixedPoints = Callable[[object], object]
+_CAPABILITIES = ("birth_rate", "death_rate", "drift_derivative", "fixed_points")
 
 
 class UnknownModelError(ValueError):
@@ -28,14 +26,16 @@ class ModelSpec:
     """Rate functions and optional fluid-model capabilities for one model."""
 
     name: str
-    birth_rate: Rate
-    death_rate: Rate
-    drift_derivative: Optional[Rate] = None
-    fixed_points: Optional[FixedPoints] = None
+    birth_rate: Callable
+    death_rate: Callable
+    drift_derivative: Optional[Callable] = None
+    fixed_points: Optional[Callable] = None
 
     def require(self, capability):
         """Return a supported capability or raise a descriptive error."""
-        value = getattr(self, capability, None)
+        if capability not in _CAPABILITIES:
+            raise ValueError("Unknown model capability: {!r}.".format(capability))
+        value = getattr(self, capability)
         if value is None:
             raise ModelCapabilityError(
                 "Model {!r} does not support {!r}.".format(self.name, capability)
@@ -73,35 +73,36 @@ def _moran_death(z, p):
     )
 
 
-def _constant(value):
-    return lambda z, p: value
+def _zero_rate(z, p):
+    """Return zero with the shape of the requested state values."""
+    return 0 * z
 
 
-MODEL_REGISTRY = {
-    "Verhulst": ModelSpec(
+_MODEL_SPECS = (
+    ModelSpec(
         "Verhulst", _verhulst_birth, _verhulst_death,
         lambda z, p: p[0] - p[1] - 2 * z * (p[0] * p[2] + p[1] * p[3]),
         lambda p: [0, (p[0] - p[1]) / (p[2] * p[0] + p[1] * p[3])],
     ),
-    "Ricker": ModelSpec(
+    ModelSpec(
         "Ricker", _ricker_birth, _linear_death,
         lambda z, p: p[0] * np.exp(-((p[2] * z) ** p[3]))
         * (1 - p[3] * (p[2] * z) ** p[3]) - p[1],
         lambda p: [0, ((np.log(p[0] / p[1])) ** (1 / p[3])) / p[2]],
     ),
-    "Hassell": ModelSpec(
+    ModelSpec(
         "Hassell", lambda z, p: p[0] * z / (1 + p[2] * z) ** p[3], _linear_death,
         lambda z, p: p[0] * (1 + p[2] * z * (1 - p[3]))
         / (1 + p[2] * z) ** (p[3] + 1) - p[1],
         lambda p: [0, ((p[0] / p[1]) ** (1 / p[3]) - 1) / p[2]],
     ),
-    "MS-S": ModelSpec(
+    ModelSpec(
         "MS-S", lambda z, p: p[0] * z / (1 + (p[2] * z) ** p[3]), _linear_death,
         lambda z, p: p[0] * (1 + (p[2] * z) ** p[3] * (1 - p[3]))
         / (1 + (p[2] * z) ** p[3]) ** 2 - p[1],
         lambda p: [0, ((p[0] / p[1] - 1) ** (1 / p[3])) / p[2]],
     ),
-    "Moran": ModelSpec(
+    ModelSpec(
         "Moran", _moran_birth, _moran_death,
         lambda z, p: (p[0] * (p[4] * (1 - p[2]) - 2 * z)
         + p[1] * (2 * z - p[4] * (1 + p[3]))) / p[4] ** 2,
@@ -118,36 +119,38 @@ MODEL_REGISTRY = {
             )) / (2 * (p[0] - p[1])),
         ],
     ),
-    "pure-birth": ModelSpec(
-        "pure-birth", lambda z, p: p[0] * z, _constant(0),
+    ModelSpec(
+        "pure-birth", lambda z, p: p[0] * z, _zero_rate,
         lambda z, p: p[0] * (z - z + 1), lambda p: [np.nan],
     ),
-    "pure-death": ModelSpec(
-        "pure-death", _constant(0), lambda z, p: p[0] * z,
+    ModelSpec(
+        "pure-death", _zero_rate, lambda z, p: p[0] * z,
         lambda z, p: -p[0] * (z - z + 1), lambda p: [np.nan],
     ),
-    "Poisson": ModelSpec(
-        "Poisson", lambda z, p: p[0], _constant(0),
+    ModelSpec(
+        "Poisson", lambda z, p: p[0], _zero_rate,
         lambda z, p: 0 * (z - z + 1), lambda p: [np.nan],
     ),
-    "linear": ModelSpec("linear", lambda z, p: p[0] * z, _linear_death,
+    ModelSpec("linear", lambda z, p: p[0] * z, _linear_death,
                         lambda z, p: (p[0] - p[1]) * (z - z + 1), lambda p: [0]),
-    "linear-migration": ModelSpec(
+    ModelSpec(
         "linear-migration", lambda z, p: p[0] * z + p[2], _linear_death,
         lambda z, p: (p[0] - p[1]) * (z - z + 1),
         lambda p: [-p[2] / (p[0] - p[1])],
     ),
-    "M/M/1": ModelSpec(
+    ModelSpec(
         "M/M/1", lambda z, p: p[0], lambda z, p: (z > 0) * p[1],
         lambda z, p: 0 * (z - z + 1), lambda p: [np.nan],
     ),
-    "M/M/inf": ModelSpec(
+    ModelSpec(
         "M/M/inf", lambda z, p: p[0], _linear_death,
         lambda z, p: -p[1] * (z - z + 1), lambda p: [p[0] / p[1]],
     ),
-    "loss-system": ModelSpec("loss-system", lambda z, p: (z < p[2]) * p[0],
-                             _linear_death, None, lambda p: [np.nan]),
-}
+    ModelSpec("loss-system", lambda z, p: (z < p[2]) * p[0],
+              _linear_death, fixed_points=lambda p: [np.nan]),
+)
+
+MODEL_REGISTRY = {spec.name: spec for spec in _MODEL_SPECS}
 
 
 def get_model(model):
@@ -156,14 +159,3 @@ def get_model(model):
         return MODEL_REGISTRY[model]
     except KeyError as error:
         raise UnknownModelError("Unknown model: {!r}.".format(model)) from error
-
-
-def resolve_model(model, b_rate=None, d_rate=None):
-    """Resolve a built-in model or explicit custom CPU rate functions."""
-    if model != "custom":
-        return get_model(model)
-    if not callable(b_rate) or not callable(d_rate):
-        raise ModelCapabilityError(
-            "Custom models require callable 'b_rate' and 'd_rate' functions."
-        )
-    return ModelSpec("custom", b_rate, d_rate)

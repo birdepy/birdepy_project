@@ -40,7 +40,6 @@ def probability(z0, zt, t, param, model='Verhulst', method='expm', **options):
 
             - 'Verhulst' (default)
             - 'Ricker'
-            - 'Beverton-Holt'
             - 'Hassell'
             - 'MS-S'
             - 'Moran'
@@ -49,7 +48,7 @@ def probability(z0, zt, t, param, model='Verhulst', method='expm', **options):
             - 'Poisson'
             - 'linear'
             - 'linear-migration'
-            - 'MS-S'
+            - 'M/M/1'
             - 'M/M/inf'
             - 'loss-system'
             - 'custom'

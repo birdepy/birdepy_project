@@ -4,23 +4,36 @@ import numpy as np
 
 from birdepy.utility import Hessian
 
+UNAVAILABLE = "Covariance matrix could not be determined."
 
-def from_hessian(log_likelihood, estimate, bounds, require_positive_definite=False):
-    """Compute covariance from a bounded finite-difference Hessian.
 
-    ``require_positive_definite`` is used for continuous-time likelihoods,
-    where a flat or nonconcave likelihood has no Gaussian covariance.  The
-    default keeps the historical discrete/EM behavior, including its
-    one-parameter array shape.
+class CovarianceError(ValueError):
+    """Raised for invalid observed information or covariance values."""
+
+
+def from_hessian(log_likelihood, estimate, bounds):
+    """Return a finite, symmetric positive-definite covariance matrix.
+
+    The bounded finite-difference Hessian supplied by :func:`utility.Hessian`
+    is converted to observed information.  Flat, non-finite, or nonconcave
+    likelihoods raise ``ValueError`` or ``numpy.linalg.LinAlgError``.  A
+    successful result always has shape ``(n, n)``, including when ``n == 1``.
     """
     hessian = Hessian(log_likelihood, estimate, bounds)
     information = -np.atleast_2d(hessian)
     if not np.all(np.isfinite(information)):
-        raise ValueError("Nonfinite observed information.")
-    if require_positive_definite:
-        information = (information + information.T) / 2
-        np.linalg.cholesky(information)
-        return np.linalg.inv(information)
-    if np.asarray(estimate).size == 1:
-        return np.array([-1 / hessian])
-    return np.linalg.inv(information)
+        raise CovarianceError("Nonfinite observed information.")
+    information = information / 2 + information.T / 2
+    np.linalg.cholesky(information)
+    covariance = np.linalg.inv(information)
+    if not np.all(np.isfinite(covariance)):
+        raise CovarianceError("Nonfinite covariance.")
+    return covariance
+
+
+def safe_from_hessian(log_likelihood, estimate, bounds):
+    """Return covariance or :data:`UNAVAILABLE` for numerical failures only."""
+    try:
+        return from_hessian(log_likelihood, estimate, bounds)
+    except (CovarianceError, np.linalg.LinAlgError, FloatingPointError):
+        return UNAVAILABLE

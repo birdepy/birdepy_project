@@ -1,49 +1,70 @@
-"""Numerical and interface contracts for the shared covariance stage."""
+"""Numerical failure and shape contracts for observed-information covariance."""
+
+import warnings
 
 import numpy as np
 import pytest
 
 import birdepy as bd
-import birdepy.covariance as covariance
+from birdepy import covariance
+import birdepy.interface_dnm as dnm
+import birdepy.utility as ut
 
 
-@pytest.mark.parametrize("information", [np.array([[4.]]), np.array([[4., 1.], [1., 3.]])])
-def test_covariance_matches_analytic_quadratic_information(information):
-    estimate = np.zeros(information.shape[0])
-    actual = covariance.from_hessian(
-        lambda x: -0.5 * x @ information @ x, estimate,
-        [[-2, 2]] * len(estimate), require_positive_definite=True)
-    assert actual.shape == information.shape
-    np.testing.assert_allclose(actual, np.linalg.inv(information), rtol=1e-6)
+def test_covariance_is_a_square_matrix_for_one_parameter_likelihood():
+    cov = covariance.from_hessian(lambda p: -(p[0] - 2) ** 2 / 2, np.array([2.]), [[0, 4]])
+    assert cov.shape == (1, 1)
+    assert cov[0, 0] == pytest.approx(1)
 
 
-@pytest.mark.parametrize("likelihood", [lambda x: 0.0, lambda x: x[0] ** 2])
-def test_continuous_covariance_rejects_flat_or_nonconcave_likelihood(likelihood):
-    with pytest.raises(np.linalg.LinAlgError):
-        covariance.from_hessian(likelihood, np.array([0.]), [[-2, 2]],
-                                require_positive_definite=True)
+def test_safe_covariance_returns_unavailable_for_flat_or_indefinite_information():
+    with np.errstate(all="raise"), warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        flat = covariance.safe_from_hessian(lambda p: 1., np.array([1.]), [[0, 2]])
+    indefinite = covariance.safe_from_hessian(
+        lambda p: (p[0] ** 2 - p[1] ** 2) / 2,
+        np.array([0., 0.]), [[-1, 1], [-1, 1]],
+    )
+    assert flat == covariance.UNAVAILABLE
+    assert indefinite == covariance.UNAVAILABLE
 
 
-def test_covariance_does_not_hide_programmer_errors():
-    def broken_likelihood(x):
-        raise RuntimeError("broken custom likelihood")
-    with pytest.raises(RuntimeError, match="broken custom likelihood"):
-        covariance.from_hessian(broken_likelihood, np.array([0.]), [[-2, 2]])
+def test_safe_covariance_handles_strict_floating_point_overflow_and_underflow():
+    with np.errstate(all="raise"):
+        result = covariance.safe_from_hessian(
+            lambda p: -1e-308 * p[0] ** 2 / 2, np.array([1.]), [[0, 2]]
+        )
+    assert result == covariance.UNAVAILABLE
 
 
-@pytest.mark.parametrize("framework", ["dnm", "em"])
-def test_single_parameter_fit_computes_covariance_once_without_printing(framework, monkeypatch, capsys):
-    original = covariance.Hessian
+def test_safe_covariance_does_not_hide_likelihood_programming_errors():
+    def broken_likelihood(p):
+        raise RuntimeError("broken rate function")
+
+    with pytest.raises(RuntimeError, match="broken rate function"):
+        covariance.safe_from_hessian(broken_likelihood, np.array([1.]), [[0, 2]])
+
+
+def test_discrete_estimation_can_skip_unused_covariance(monkeypatch):
+    monkeypatch.setattr(dnm, "safe_from_hessian", lambda *args: pytest.fail("called"))
+    data = {(1, 1, 1.): 1}
+    opt, cov = dnm.discrete_est_dnm(
+        data, "expm", "pure-death", [0, 5], [], [], np.array([.5]), [[0, 2]],
+        (), "L-BFGS-B", ut.add_options({}), compute_cov=False,
+    )
+    assert opt.x.shape == (1,)
+    assert cov == covariance.UNAVAILABLE
+
+
+def test_bootstrap_refits_skip_observed_information(monkeypatch):
     calls = []
-    def tracked_hessian(*args):
-        calls.append(1)
+    original = dnm.safe_from_hessian
+
+    def count(*args):
+        calls.append(args)
         return original(*args)
-    monkeypatch.setattr(covariance, "Hessian", tracked_hessian)
-    result = bd.estimate(
-        [0, 1, 2], [3, 2, 1], [.5], [[.01, 2]], model="pure-death",
-        framework=framework, accelerator="none", max_it=3, display=False)
+
+    monkeypatch.setattr(dnm, "safe_from_hessian", count)
+    bd.estimate([0, 1, 2], [3, 2, 1], [1.], [[.01, 3]], model="pure-death",
+                seed=12, se_type="simulated", num_samples=3, z_trunc=[0, 6])
     assert len(calls) == 1
-    assert capsys.readouterr().out == ""
-    assert result.cov.shape == (1, 1)
-    assert result.cov[0, 0] > 0
-    assert np.isfinite(result.se[0])

@@ -598,7 +598,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                     p_data_temp.append(pop_sizes)
                 bootstrap_samples[idx, :] = continuous_est_dnm(
                     t_data_temp, p_data_temp, p0, b_rate, d_rate, p_bounds, con,
-                    known_p, idx_known_p, opt_method, options)[0].x
+                    known_p, idx_known_p, opt_method, options, compute_cov=False)[0].x
             else:  # observation scheme is discrete
                 temp_data = {}
                 for i in data:
@@ -619,7 +619,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                 if framework == 'dnm':
                     bootstrap_samples[idx, :] = discrete_est_dnm(
                         temp_data, likelihood, model, bootstrap_trunc, idx_known_p,
-                        known_p, p_est, p_bounds, con, opt_method, options)[0].x
+                        known_p, p_est, p_bounds, con, opt_method, options,
+                        compute_cov=False)[0].x
                 elif framework == 'lse':
                     bootstrap_samples[idx, :] = discrete_est_lse(
                         temp_data, squares, model, b_rate, d_rate, bootstrap_trunc,
@@ -630,7 +631,7 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
                         temp_data, p_est, technique, accelerator, likelihood, p_bounds,
                         con, known_p, idx_known_p, model, b_rate, d_rate,
                         bootstrap_trunc, max_it, i_tol, j_tol, h_tol, display,
-                        opt_method, options)[0]
+                        opt_method, options, compute_cov=False)[0]
             if display:
                 print('Boostrap confidence region progress:',
                       100 * (idx + 1) / num_samples, '%')
