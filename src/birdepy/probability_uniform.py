@@ -4,6 +4,20 @@ import birdepy.utility as ut
 from scipy.stats import poisson
 
 
+def _poisson_cutoff(mean, log_tolerance):
+    """Smallest cutoff meeting the tail bound, including tiny tail budgets."""
+    lower, upper = -1, max(1, int(np.ceil(mean)))
+    while poisson.logsf(upper, mean) > log_tolerance:
+        lower, upper = upper, 2 * upper
+    while upper - lower > 1:
+        midpoint = (lower + upper) // 2
+        if poisson.logsf(midpoint, mean) > log_tolerance:
+            lower = midpoint
+        else:
+            upper = midpoint
+    return upper
+
+
 def p_mat_bld_uniform(q_mat, t, _k, num_states, tol=1e-12):
     """
     Builds and returns the discrete time Markov chain utilized by
@@ -19,19 +33,30 @@ def p_mat_bld_uniform(q_mat, t, _k, num_states, tol=1e-12):
         raise ValueError("Argument `k` must be a nonnegative integer or None.")
     if m == 0 or t == 0:
         return np.eye(num_states)
+    mean = m * t
+    if not np.isfinite(mean):
+        raise ValueError("The uniformization rate times elapsed time must be finite.")
+    squarings = 0
     if _k is None:
-        _k = int(poisson.isf(tol, m * t))
-    elif poisson.sf(_k, m * t) > tol:
+        # Uniformize over a shorter interval, then use the semigroup property.
+        # A per-interval tail of tol / 2**s bounds the total omitted mass by tol.
+        if mean > 16:
+            squarings = int(np.ceil(np.log2(mean / 16)))
+            mean = np.ldexp(mean, -squarings)
+        _k = _poisson_cutoff(mean, np.log(tol) - squarings * np.log(2))
+    elif poisson.sf(_k, mean) > tol:
         warnings.warn("The uniformization cutoff omits significant probability mass; "
                       "increase k or use k=None for automatic truncation.",
                       RuntimeWarning)
     a_mat = np.divide(q_mat, m) + np.eye(num_states)
     w = np.eye(num_states)
-    poisson_terms = poisson.pmf(range(_k + 1), m * t)
+    poisson_terms = poisson.pmf(range(_k + 1), mean)
     p_mat = np.multiply(w, poisson_terms[0])
     for idx in np.arange(1, _k + 1, 1):
         w = np.matmul(w, a_mat)
         p_mat += np.multiply(w, poisson_terms[idx])
+    for _ in range(squarings):
+        p_mat = np.matmul(p_mat, p_mat)
 
     return p_mat
 
@@ -59,7 +84,9 @@ def probability_uniform(z0, zt, t, param, b_rate, d_rate, z_trunc, k, tol=1e-12)
 
     k : int or None, optional
         Largest Poisson-series index to include. By default (None), choose
-        the cutoff to bound the omitted Poisson tail by `uniform_tol`.
+        the cutoff to bound the omitted Poisson tail by `uniform_tol`, using
+        shorter intervals and repeated squaring when the rate-time product
+        is large. Each interval receives a share of the total tail budget.
         An explicit cutoff is respected, with a warning if it is insufficient.
 
     uniform_tol : float, optional

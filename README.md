@@ -10,9 +10,9 @@ Hautphenne S, Patch B (2024). "Birth-and-Death Processes in Python: The BirDePy 
 
 ## Numerical reliability
 
-The [unreleased changes](CHANGELOG.md#unreleased) correct simulation, estimation,
-and forecasting defects. Results from the affected algorithms can differ from
-earlier versions, including when using the same random seed.
+See the [changelog](CHANGELOG.md) for released changes.
+Corrections to simulation, estimation, and forecasting
+can change results from earlier versions, including when using the same random seed.
 
 Uniformization now chooses its Poisson-series cutoff automatically:
 
@@ -28,6 +28,8 @@ probability = bd.probability(
 `uniform_tol` bounds the omitted Poisson tail; it does not bound the separate
 error from truncating the state space with `z_trunc`. An explicit `k` is still
 accepted, with a warning when the omitted probability mass exceeds the tolerance.
+For large rate-time products, the automatic method uses shorter intervals and
+repeated squaring, dividing the tail budget across the intervals.
 
 ABC returns weighted particle populations. Use `sample_weights` alongside
 `samples` for additional posterior summaries:
@@ -49,6 +51,8 @@ For ABC, `p` and `cov` use these weights, and `se` reports posterior standard
 deviations. Numeric covariance outputs have shape `(n_parameters, n_parameters)`,
 including for a single parameter. A covariance that cannot be estimated is
 reported as a descriptive string.
+For other estimation frameworks, `sample_weights` contains the same
+"Not applicable" sentinel as `samples`.
 
 ## Running the tests
 

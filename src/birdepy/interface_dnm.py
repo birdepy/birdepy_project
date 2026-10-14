@@ -248,10 +248,10 @@ def continuous_est_dnm(t_data, p_data, p0, b_rate, d_rate, p_bounds, con,
     .. [3] Wolff, R. W. (1965). Problems of statistical inference for birth and
      death queuing models. Operations Research, 13(3), 343-357.
     """
-    # Convert data into the format of a list of lists
-    if type(t_data[0]) != list:
+    # Normalize a single path while retaining list, tuple, or array path collections.
+    if np.ndim(t_data[0]) == 0:
         t_data = [t_data]
-    if type(p_data[0]) != list:
+    if np.ndim(p_data[0]) == 0:
         p_data = [p_data]
 
     # Create a list containing inter-event (or "holding") times

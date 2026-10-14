@@ -253,7 +253,7 @@ def discrete_est_abc(data, eps_abc, distance, stat, k, gam, max_its, max_q,
     if k < 2 or max_its < 1:
         raise ValueError("ABC requires at least two particles and one iteration.")
     if stat not in ('mean', 'median'):
-        raise ValueError("Argument `stat` must be 'mean' or 'median'.")
+        raise TypeError("Argument `stat` must be 'mean' or 'median'.")
 
     prior_pdf = estimate_prior_pdf(p_bounds, con, seed)
 

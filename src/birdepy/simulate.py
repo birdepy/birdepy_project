@@ -1,5 +1,6 @@
 import numpy as np
 import birdepy.utility as ut
+from birdepy._branching import beta1, beta2, branching_probabilities
 
 
 def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
@@ -307,6 +308,23 @@ def discrete_ma(param, z0, times, k, survival, rng, display, b_rate, d_rate, tau
     return out
 
 
+def _binomial_survivors(pop, probability, rng):
+    if not 0 < probability < np.finfo(float).eps:
+        return rng.binomial(pop, probability)
+    # At tiny success probabilities, use geometric waiting times without
+    # forming 1-p. This remains an exact binomial construction and has few
+    # iterations even for populations near the int64 limit.
+    remaining, survivors = pop, 0
+    log_failure = np.log1p(-probability)
+    while remaining > 0:
+        gap = rng.exponential() / -log_failure
+        if gap >= remaining:
+            break
+        remaining -= int(gap) + 1
+        survivors += 1
+    return survivors
+
+
 def discrete_gwa(param, z0, times, k, survival, rng, display, b_rate, d_rate, tau):
     """Approximate simulation of continuous-time birth-and-death processes at discrete
     observation times. Uses a piecewise linear approximation where the rates are fixed
@@ -338,12 +356,12 @@ def discrete_gwa(param, z0, times, k, survival, rng, display, b_rate, d_rate, ta
                         continue
                     lam = b_rate(pop, param) / pop if pop > 0 else 0
                     mu = d_rate(pop, param) / pop if pop > 0 else 0
-                    p = 1 - beta1(lam, mu, tau)
-                    number_survivors = rng.binomial(pop, p)
+                    _, _, p, geometric_p = branching_probabilities(lam, mu, tau)
+                    number_survivors = _binomial_survivors(pop, p, rng)
                     if number_survivors > 0:
                         pop = number_survivors + \
                               rng.negative_binomial(number_survivors,
-                                                    1-beta2(lam, mu, tau))
+                                                    geometric_p)
                     else:
                         pop = 0
                     next_event_time += tau
@@ -361,48 +379,6 @@ def discrete_gwa(param, z0, times, k, survival, rng, display, b_rate, d_rate, ta
     else:
         out = sample
     return out
-
-
-def beta1(lam, mu, t):
-    """
-    Computes an important part of the transition probability function for a linear
-    linear-and-death process. Corresponds to $\alpha$ defined below Equation (1)
-    in reference [1].
-
-    References
-    ----------
-    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
-    estimation for discretely observed linear birth‐and‐death processes.
-    Biometrics, 77(1), 186-196.
-    """
-    if lam == mu:
-        return lam * t / (1 + lam * t)
-    if lam > mu:
-        change = -np.expm1(-(lam - mu) * t)
-        return mu * change / (lam - mu + mu * change)
-    change = -np.expm1(-(mu - lam) * t)
-    return mu * change / (mu - lam + lam * change)
-
-
-def beta2(lam, mu, t):
-    """
-    Computes an important part of the transition probability function for a linear
-    linear-and-death process. Corresponds to $\beta$ defined below Equation (1)
-    in reference [1].
-
-    References
-    ----------
-    .. [1] Davison, A. C., Hautphenne, S., & Kraus, A. (2021). Parameter
-    estimation for discretely observed linear birth‐and‐death processes.
-    Biometrics, 77(1), 186-196.
-    """
-    if lam == mu:
-        return lam * t / (1 + lam * t)
-    if lam > mu:
-        change = -np.expm1(-(lam - mu) * t)
-        return lam * change / (lam - mu + mu * change)
-    change = -np.expm1(-(mu - lam) * t)
-    return lam * change / (mu - lam + lam * change)
 
 
 def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,

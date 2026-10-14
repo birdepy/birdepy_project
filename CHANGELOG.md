@@ -1,28 +1,3 @@
-# Unreleased
-
-### Correctness fixes
-
-* Evaluate birth and death rates at the same state in Euler and midpoint simulation steps.
-* Support pure-birth limits and immigration from zero in GWA simulation.
-* Preserve observation counts when grouping rounded inter-observation times.
-* Correct Moran death rates on CPU and GPU, and drift derivatives for Moran, Hassell, and MS-S models.
-* Reject zero-rate explanations of observed continuous-time jumps, report the actual log-likelihood, and avoid invalid covariance estimates for impossible or flat likelihoods.
-* Match ABC proposal sampling and importance densities, and use weighted posterior summaries. Expose per-iteration `sample_weights` and accept an explicit `eps_abc='dynamic'`.
-* Refit simulated data in EM and continuous-observation bootstraps; retain known parameters, custom rate functions, observation horizons, and random seeds. Expand bootstrap truncation bounds when simulated endpoints require it.
-* Return numeric covariance estimates as matrices, including for one parameter.
-* Make the uniformization cutoff adaptive to a configurable `uniform_tol` (default `1e-12`); warn when an explicit cutoff omits too much probability mass.
-* Handle zero-time Erlang calculations, zero generators, singleton state spaces, and constant observation paths.
-* Fix forecasts without parameter covariance, preserve known parameters and requested tick positions, and reject unsupported fluid prediction intervals.
-* Correct the default probability model and preserve explicit options when a nested options dictionary is supplied.
-
-### Validation and compatibility
-
-* Add regression tests against analytic results and statistical properties, and repair the midpoint test that previously exercised exact simulation.
-* Run the CPU test workflow on Python 3.10 and 3.11 with a noninteractive plotting backend and bounded numerical-library threading.
-* Corrected numerical results and seeded simulation sequences can differ from earlier releases. ABC particle populations must be interpreted with their importance weights.
-* Existing explicit uniformization cutoffs remain supported. `uniform_tol` controls only the Poisson-series tail, not state-space truncation error.
-* CUDA execution requires separate validation on compatible hardware.
-
 # [1.0.0](https://github.com/birdepy/birdepy_project/compare/v0.0.27...v1.0.0) (2024-11-30)
 
 

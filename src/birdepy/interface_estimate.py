@@ -137,6 +137,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
         `samples` contains the accepted particles for each ABC iteration;
         `sample_weights` contains their corresponding normalized importance
         weights. Use both when computing additional posterior summaries.
+        For other frameworks, `sample_weights` has the same "Not applicable"
+        sentinel as `samples`.
 
     Examples
     --------
@@ -236,7 +238,8 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     # of a key word argument with key 'options', in this case the dictionary
     # must be extracted:
     if 'options' in options.keys():
-        options = options['options']
+        nested_options = options.pop('options')
+        options = {**nested_options, **options}
 
     # Convert the arguments of 'p0', 'known_p' and 'idx_known_p' into numpy arrays
     p0 = np.array(p0)
@@ -375,8 +378,6 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
             else:
                 stat = 'mean'
                 options['stat'] = stat
-            if stat not in ['mean', 'median']:
-                raise TypeError("Argument of 'stat' has an unknown value.")
             if 'gam' in options.keys():
                 gam = options['gam']
             else:
@@ -666,12 +667,13 @@ def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
     else:
         capacity = "Functionality not available for custom models."
 
+    if framework != 'abc':
+        sample_weights = samples
     result = EstimationOutput(p=list(p_est), capacity=capacity, val=err, cov=cov,
                             se=se, compute_time=time.time() - tic,
                             framework=framework, message=message,
                             success=success, iterations=iterations,
                             method=method, p0=list(p0),
-                            scheme=scheme, samples=samples, model=model)
-    if framework == 'abc':
-        result.sample_weights = sample_weights
+                            scheme=scheme, samples=samples,
+                            sample_weights=sample_weights, model=model)
     return result
