@@ -14,6 +14,7 @@ from birdepy.forecast_compute import parameter_sampler
 
 @pytest.fixture(autouse=True)
 def close_figures():
+    plt.close('all')
     yield
     plt.close('all')
 
@@ -60,7 +61,7 @@ def test_plot_forecast_uses_the_supplied_axis():
 
 
 def test_infeasible_parameter_sampling_fails_explicitly():
-    with pytest.raises(RuntimeError, match='within 2 attempts'):
+    with pytest.raises(RuntimeError, match='after 0 of 1 samples.*Zero covariance'):
         bd.compute_forecast('linear', 10, [0, 1], [.6, .4], cov=[[0, 0], [0, 0]],
                             p_bounds=[[0, .1], [0, .1]], k=1, max_rejections=2)
 
@@ -94,7 +95,7 @@ def test_parameter_sampler_rejects_equality_constraints_up_front():
 
 
 def test_parameter_sampler_rejects_nonfinite_constraint_values():
-    with pytest.raises(RuntimeError, match='within 1 attempts'):
+    with pytest.raises(RuntimeError, match='Zero covariance'):
         parameter_sampler(np.array([.6]), np.zeros((1, 1)), None, (), (),
                           {'type': 'ineq', 'fun': lambda p: np.nan},
                           np.random.default_rng(42), max_rejections=1)

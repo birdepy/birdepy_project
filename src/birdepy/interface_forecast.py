@@ -1,16 +1,18 @@
 """Legacy plotting wrapper for the numerical forecasting API."""
 
-from matplotlib import cm
+from birdepy.forecast_compute import (DEFAULT_PERCENTILES, compute_forecast,
+                                      mean_curve, parameter_sampler)
+from birdepy.forecast_plot import DEFAULT_COLORMAP, DEFAULT_LABELS, plot_forecast
 
-from birdepy.forecast_compute import compute_forecast, mean_curve, parameter_sampler
-from birdepy.forecast_plot import plot_forecast
+# Keep historical helper import paths explicit for downstream callers.
+__all__ = ["forecast", "mean_curve", "parameter_sampler"]
 
 
 def forecast(model, z0, times, param, cov=None, interval='confidence', method=None,
-             percentiles=(0, 2.5, 10, 25, 50, 75, 90, 97.5, 100),
-             labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
+             percentiles=DEFAULT_PERCENTILES,
+             labels=DEFAULT_LABELS,
              p_bounds=None, con=(), known_p=(), idx_known_p=(),
-             k=10 ** 3, n=10 ** 3, seed=None, colormap=cm.Purples,
+             k=10 ** 3, n=10 ** 3, seed=None, colormap=DEFAULT_COLORMAP,
              xlabel='t', ylabel='default', xticks='default', rotation=45,
              display=False, export=False, **options):
     """Simulation based forecasting for continuous-time birth-and-death processes.
@@ -94,7 +96,10 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         ``(min, max)`` pairs for each unknown parameter. See :ref:`here <Parameter Constraints>`.
 
     con : {Constraint, dict} or List of {Constraint, dict}, optional
-        Constraints definition for parameters.
+        Inequality constraints on unknown parameters, applied when sampling
+        with ``cov``. Dictionaries support vector-valued functions and ``args``;
+        SciPy linear and nonlinear inequalities are also supported. Exact
+        equalities are unsupported: use ``known_p`` or reparameterize the model.
         See :ref:`here <Parameter Constraints>` for more information.
 
     known_p : array_like, optional
@@ -214,8 +219,8 @@ def forecast(model, z0, times, param, cov=None, interval='confidence', method=No
         model, z0, times, param, cov=cov, interval=interval, method=method,
         percentiles=percentiles, p_bounds=p_bounds, con=con, known_p=known_p,
         idx_known_p=idx_known_p, k=k, n=n, seed=seed, display=display,
-        **options)
-    plot_forecast(result, labels=labels, colormap=colormap, xlabel=xlabel,
+        _warning_stacklevel=3, **options)
+    plot_forecast(result, labels=None if labels is DEFAULT_LABELS else labels, colormap=colormap, xlabel=xlabel,
                   ylabel=ylabel, xticks=xticks, rotation=rotation)
     if isinstance(export, str):
         import tikzplotlib

@@ -3,14 +3,36 @@
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+from birdepy.forecast_compute import DEFAULT_PERCENTILES
 
-def plot_forecast(result, ax=None, labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
-                  colormap=cm.Purples, xlabel='t', ylabel='default', xticks='default',
+DEFAULT_LABELS = (r'$95\%$', r'$80\%$', r'$50\%$')
+DEFAULT_COLORMAP = cm.Purples
+
+
+def plot_forecast(result, ax=None, labels=None,
+                  colormap=DEFAULT_COLORMAP, xlabel='t', ylabel='default', xticks='default',
                   rotation=45):
     """Plot a :class:`~birdepy.results.ForecastResult` on an optional axis.
 
-    Returns the axis used for rendering. No numerical calculation occurs here.
+    Returns the axis used for rendering. Labels default to each band's
+    percentile mass. Custom endpoints are paired from outside to inside around
+    the median; the default percentile grid retains the legacy three bands.
+    An explicit label sequence must have one label per band. A supplied axis
+    retains its figure's layout policy.
     """
+    pairs = []
+    if result.quantiles is not None:
+        if tuple(result.percentiles) == DEFAULT_PERCENTILES:
+            pairs = [(1, -2), (2, -3), (3, -4)]
+        else:
+            lows = [i for i, p in enumerate(result.percentiles) if p < 50]
+            highs = [i for i, p in enumerate(result.percentiles) if p > 50]
+            pairs = list(zip(lows, reversed(highs)))
+        if labels is None:
+            labels = [f'${result.percentiles[high] - result.percentiles[low]:g}\\%$'
+                      for low, high in pairs]
+        elif isinstance(labels, str) or len(labels) != len(pairs):
+            raise ValueError("labels must contain one label per percentile band.")
     created_axis = ax is None
     if created_axis:
         _, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 4))
@@ -19,27 +41,12 @@ def plot_forecast(result, ax=None, labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
         xticks = times
     if ylabel == 'default':
         ylabel = r'$\mathbb{E} Z(t)$' if result.interval == 'confidence' else '$Z(t)$'
-
-    if result.quantiles is None:
-        ax.plot(times, result.central, color='k')
-    else:
-        m = len(result.percentiles)
-        half = int((m - 1) // 2)
-        ax.plot(times, result.central, color='k')
-        legacy = tuple(result.percentiles) == (0, 2.5, 10, 25, 50, 75, 90, 97.5, 100)
-        if legacy:
-            pairs = [(i + 1, -(i + 2)) for i in range(half - 1)]
-        else:
-            lows = [i for i, p in enumerate(result.percentiles) if p < 50]
-            highs = [i for i, p in enumerate(result.percentiles) if p > 50]
-            pairs = list(zip(lows, reversed(highs)))
-        for i, (low, high) in enumerate(pairs):
-            label = labels[i] if legacy and i < len(labels) else (
-                f'${result.percentiles[high] - result.percentiles[low]:g}\\%$')
-            ax.fill_between(times, result.quantiles[:, low], result.quantiles[:, high],
-                            color=colormap((i + 1) / (half if legacy else max(1, len(pairs)))), label=label)
-        if pairs:
-            ax.legend(loc="upper left")
+    ax.plot(times, result.central, color='k')
+    for i, (low, high) in enumerate(pairs):
+        ax.fill_between(times, result.quantiles[:, low], result.quantiles[:, high],
+                        color=colormap((i + 1) / (len(pairs) + 1)), label=labels[i])
+    if pairs:
+        ax.legend(loc="upper left")
     ax.tick_params(labelsize=11.5)
     ax.set_xlabel(xlabel, fontsize=14)
     ax.set_xticks(xticks)

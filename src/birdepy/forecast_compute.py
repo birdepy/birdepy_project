@@ -1,119 +1,138 @@
 """Numerical forecast calculations without plotting side effects."""
 
 import warnings
+from collections.abc import Mapping
 
 import numpy as np
 from scipy.integrate import solve_ivp
+from scipy.optimize import LinearConstraint, NonlinearConstraint
 
 from birdepy import simulate
 import birdepy.utility as ut
 from birdepy.results import ForecastResult
 
+DEFAULT_PERCENTILES = (0, 2.5, 10, 25, 50, 75, 90, 97.5, 100)
 DEFAULT_MAX_REJECTIONS = 10_000
 
 
-def _validate_constraints(constraints):
-    """Reject unsupported or malformed constraints before consuming RNG state."""
-    if constraints is None or (isinstance(constraints, (tuple, list)) and not constraints):
-        return
-    items = (constraints,) if isinstance(constraints, dict) or hasattr(constraints, 'lb') else constraints
+class _SamplingError(RuntimeError):
+    """A parameter distribution could not produce a feasible sample."""
+
+
+def _positive_integer(value, name):
+    if (not isinstance(value, (int, np.integer))
+            or isinstance(value, (bool, np.bool_)) or value <= 0):
+        raise ValueError(f"{name} must be a positive integer.")
+
+
+def _prepare_constraints(constraints):
+    """Normalize public constraint formats once, before any random draws."""
+    if constraints is None:
+        return ()
+    if isinstance(constraints, (Mapping, LinearConstraint, NonlinearConstraint)):
+        constraints = (constraints,)
     try:
-        iterator = iter(items)
+        constraints = tuple(constraints)
     except TypeError as error:
         raise TypeError("Constraints must be dictionaries or SciPy constraints.") from error
-    for constraint in iterator:
-        if isinstance(constraint, dict):
-            if not callable(constraint.get('fun')):
-                raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
+    prepared = []
+    for constraint in constraints:
+        if isinstance(constraint, Mapping):
+            function = constraint.get('fun')
             kind = constraint.get('type')
+            if not callable(function):
+                raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
             if not isinstance(kind, str) or kind.lower() not in ('ineq', 'eq'):
                 raise ValueError("Constraint dictionaries must have type 'ineq' or 'eq'.")
             if kind.lower() == 'eq':
-                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
-        elif hasattr(constraint, 'lb') and hasattr(constraint, 'ub'):
-            if np.any(np.asarray(constraint.lb) == np.asarray(constraint.ub)):
-                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
+                raise ValueError("Equality constraints are not supported for forecast parameter sampling; "
+                                 "use known_p or reparameterize the model.")
+            try:
+                args = tuple(constraint.get('args', ()))
+            except TypeError as error:
+                raise TypeError("Constraint dictionary 'args' must be iterable.") from error
+            def evaluate(proposal, function=function, args=args):
+                return function(proposal, *args)
+            lower, upper = 0, np.inf
+        elif isinstance(constraint, (LinearConstraint, NonlinearConstraint)):
+            lower, upper = np.broadcast_arrays(constraint.lb, constraint.ub)
+            if np.any(np.isnan(lower)) or np.any(np.isnan(upper)) or np.any(lower > upper):
+                raise ValueError("Constraint bounds must not contain NaN and must have lower <= upper.")
+            if np.any(lower == upper):
+                raise ValueError("Equality constraints are not supported for forecast parameter sampling; "
+                                 "use known_p or reparameterize the model.")
+            if isinstance(constraint, LinearConstraint):
+                def evaluate(proposal, matrix=constraint.A):
+                    return matrix @ proposal
+            else:
+                evaluate = constraint.fun
         else:
             raise TypeError("Constraints must be dictionaries or SciPy constraints.")
+        prepared.append((evaluate, lower, upper))
+    return tuple(prepared)
 
 
 def _constraints_are_feasible(constraints, proposal):
-    """Check SciPy and dictionary constraints against an unknown proposal."""
-    if constraints is None or (isinstance(constraints, (tuple, list)) and not constraints):
-        return True
-    if isinstance(constraints, dict) or (hasattr(constraints, 'lb')
-                                         and hasattr(constraints, 'ub')):
-        constraints = (constraints,)
-
-    for constraint in constraints:
-        if isinstance(constraint, dict):
-            fun = constraint.get('fun')
-            if not callable(fun):
-                raise ValueError("Constraint dictionaries must provide a callable 'fun'.")
-            value = np.asarray(fun(proposal, *constraint.get('args', ())))
-            constraint_type = constraint.get('type')
-            if not isinstance(constraint_type, str):
-                raise ValueError("Constraint dictionaries must provide type 'ineq'.")
-            constraint_type = constraint_type.lower()
-            if constraint_type == 'eq':
-                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
-            elif constraint_type == 'ineq':
-                feasible = np.all(value >= 0)
-            else:
-                raise ValueError("Constraint dictionaries must have type 'eq' or 'ineq'.")
-        elif hasattr(constraint, 'lb') and hasattr(constraint, 'ub'):
-            if np.any(np.asarray(constraint.lb) == np.asarray(constraint.ub)):
-                raise ValueError("Equality constraints are not supported for forecast parameter sampling.")
-            if hasattr(constraint, 'fun'):
-                value = np.asarray(constraint.fun(proposal))
-            elif hasattr(constraint, 'A'):
-                value = np.asarray(constraint.A @ proposal)
-            else:
-                raise TypeError("Unsupported SciPy constraint.")
-            feasible = np.all(value >= constraint.lb) and np.all(value <= constraint.ub)
-        else:
-            raise TypeError("Constraints must be dictionaries or SciPy constraints.")
-        if np.any(np.isnan(value)) or not feasible:
+    for function, lower, upper in constraints:
+        value = np.asarray(function(proposal))
+        # Infinities are valid for one-sided constraints; NaN is never feasible.
+        if not np.all((value >= lower) & (value <= upper)):
             return False
     return True
 
 
+def _prepare_parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con,
+                               rng, max_rejections):
+    _positive_integer(max_rejections, 'max_rejections')
+    constraints = _prepare_constraints(con)
+    param = np.atleast_1d(np.asarray(param, dtype=float))
+    cov = np.atleast_2d(np.asarray(cov, dtype=float))
+    if param.ndim != 1 or not np.all(np.isfinite(param)):
+        raise ValueError("param must be a finite one-dimensional parameter vector.")
+    if cov.shape != (param.size, param.size) or not np.all(np.isfinite(cov)):
+        raise ValueError("cov must be a finite square matrix matching param.")
+    lower = np.full(param.size, -np.inf)
+    upper = np.full(param.size, np.inf)
+    if p_bounds is not None:
+        if len(p_bounds) != param.size:
+            raise ValueError("p_bounds must contain one pair for each unknown parameter.")
+        for index, (lo, hi) in enumerate(p_bounds):
+            lower[index] = -np.inf if lo is None else lo
+            upper[index] = np.inf if hi is None else hi
+        if np.any(np.isnan(lower)) or np.any(np.isnan(upper)) or np.any(lower > upper):
+            raise ValueError("Each parameter bound must not contain NaN and have lower <= upper.")
+
+    def feasible(proposal):
+        return (np.all(proposal >= lower) and np.all(proposal <= upper)
+                and _constraints_are_feasible(constraints, proposal))
+
+    # Only a deterministic distribution can be rejected based on its center.
+    # A nondegenerate truncated normal may have its center outside its support.
+    if np.all(cov == 0) and not feasible(param):
+        raise _SamplingError("Zero covariance fixes parameters at an infeasible value.")
+
+    def draw():
+        for _ in range(max_rejections):
+            # Retain NumPy's covariance validation and seeded sampling algorithm.
+            proposal = rng.multivariate_normal(param, cov)
+            if feasible(proposal):
+                return ut.p_bld(proposal, idx_known_p, known_p)
+        raise _SamplingError(
+            "Unable to sample parameters satisfying p_bounds and con within "
+            f"{max_rejections} attempts.")
+    return draw
+
+
 def parameter_sampler(param, cov, p_bounds, known_p, idx_known_p, con, rng,
                       max_rejections=DEFAULT_MAX_REJECTIONS):
-    """Draw one bounded, constrained parameter vector.
+    """Draw one bounded, inequality-constrained parameter vector.
 
-    ``max_rejections`` bounds rejection sampling so contradictory bounds or
-    constraints fail explicitly rather than hanging indefinitely.
+    Constraints apply to unknown parameters, before expanding ``known_p``.
+    Exact equalities are unsupported by rejection sampling. ``max_rejections``
+    bounds the proposals per sample; deterministic infeasibility fails early.
     """
-    param = np.atleast_1d(param)
-    _validate_constraints(con)
-    if (not isinstance(max_rejections, (int, np.integer,)) or isinstance(max_rejections, bool)
-            or max_rejections <= 0):
-        raise ValueError("max_rejections must be a positive integer.")
-    if p_bounds is not None:
-        if len(p_bounds) != len(param):
-            raise ValueError("p_bounds must contain one pair for each unknown parameter.")
-        for lower, upper in p_bounds:
-            lower = -np.inf if lower is None else lower
-            upper = np.inf if upper is None else upper
-            if np.isnan(lower) or np.isnan(upper) or lower > upper:
-                raise ValueError("Each parameter bound must not contain NaN and have lower <= upper.")
-
-    for _ in range(max_rejections):
-        param_prop = rng.multivariate_normal(param, cov)
-        if p_bounds is not None and any(
-                value < (-np.inf if bound[0] is None else bound[0])
-                or value > (np.inf if bound[1] is None else bound[1])
-                for value, bound in zip(param_prop, p_bounds)):
-            continue
-        # Constraints intentionally apply to unknown parameters, before their
-        # known values are expanded into the model's full parameter vector.
-        if not _constraints_are_feasible(con, param_prop):
-            continue
-        return ut.p_bld(np.array(param_prop), idx_known_p, known_p)
-    raise RuntimeError(
-        "Unable to sample parameters satisfying p_bounds and con within "
-        f"{max_rejections} attempts.")
+    return _prepare_parameter_sampler(param, cov, p_bounds, known_p, idx_known_p,
+                                      con, rng, max_rejections)()
 
 
 def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
@@ -142,7 +161,7 @@ def mean_curve(param, b_rate, d_rate, method, z0, solver_methods,
 
 
 def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
-                     method=None, percentiles=(0, 2.5, 10, 25, 50, 75, 90, 97.5, 100),
+                     method=None, percentiles=DEFAULT_PERCENTILES,
                      p_bounds=None, con=(), known_p=(), idx_known_p=(), k=10 ** 3,
                      n=10 ** 3, seed=None, display=False, *,
                      max_rejections=DEFAULT_MAX_REJECTIONS, **options):
@@ -154,7 +173,12 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
     to inspect or store its numerical result directly. Numerical parameters
     have the same meaning as in :func:`birdepy.forecast`. The optional
     ``max_rejections`` keyword limits proposals per uncertain parameter sample
-    (default 10000), raising ``RuntimeError`` when exhausted.
+    (default 10000), raising ``RuntimeError`` with the number of completed
+    samples when exhausted. Constraints apply to unknown parameters and support
+    inequality dictionaries (including ``args``) and SciPy constraint objects.
+    Exact equality constraints cannot be handled by rejection sampling; use
+    ``known_p`` or reparameterize the model. Bounds and constraints are sampling
+    controls and are only applied when ``cov`` is supplied.
 
     Returns a :class:`birdepy.ForecastResult` with times, central and mean
     curves, quantiles, samples (when an interval is sampled), and metadata.
@@ -168,12 +192,8 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
             or np.any(percentiles < 0) \
             or np.any(percentiles > 100) or np.any(np.diff(percentiles) < 0):
         raise ValueError("percentiles must be an increasing sequence in [0, 100].")
-    if (not isinstance(k, (int, np.integer)) or not isinstance(n, (int, np.integer))
-            or k <= 0 or n <= 0):
-        raise ValueError("k and n must be positive integers.")
-    if (not isinstance(max_rejections, (int, np.integer)) or isinstance(max_rejections, bool)
-            or max_rejections <= 0):
-        raise ValueError("max_rejections must be a positive integer.")
+    for name, value in (('k', k), ('n', n), ('max_rejections', max_rejections)):
+        _positive_integer(value, name)
 
     if interval == 'confidence' and method is None:
         method = 'fm'
@@ -198,51 +218,52 @@ def compute_forecast(model, z0, times, param, cov=None, interval='confidence',
     rng = np.random.default_rng() if seed is None else np.random.default_rng(seed)
     solver_methods = ['RK45', 'Radau', 'RK23', 'BDF', 'DOP853']
     samples = None
+    quantiles = None
+    draw = None
+    if cov is not None:
+        try:
+            draw = _prepare_parameter_sampler(param, cov, p_bounds, known_p,
+                                               idx_known_p, con, rng, max_rejections)
+        except _SamplingError as error:
+            raise RuntimeError(f"Forecast stopped after 0 of {k} samples: {error}") from error
 
-    if interval == 'confidence':
-        if cov is None:
-            warnings.warn("Confidence intervals show the likely range of the mean "
-                          "future population level given the uncertainty of the "
-                          "parameter values, however since argument `cov` has value "
-                          "None no uncertainty in parameter values has been specified.",
-                          category=RuntimeWarning, stacklevel=2)
-            central = mean_curve(full_param, b_rate, d_rate, method, z0,
-                                solver_methods, shift_times, n, rng)
-            mean = central.copy()
-            quantiles = None
-        else:
-            samples = np.zeros((k, times.shape[0]))
-            for idx in range(k):
-                param_prop = parameter_sampler(param, cov, p_bounds, known_p,
-                                               idx_known_p, con, rng,
-                                               max_rejections)
-                samples[idx, :] = mean_curve(param_prop, b_rate, d_rate, method, z0,
-                                             solver_methods, shift_times, n, rng)
-                if display:
-                    print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
+    if interval == 'confidence' and cov is None:
+        warnings.warn("Confidence intervals show the likely range of the mean "
+                      "future population level given the uncertainty of the "
+                      "parameter values, however since argument `cov` has value "
+                      "None no uncertainty in parameter values has been specified.",
+                      category=RuntimeWarning,
+                      stacklevel=options.pop('_warning_stacklevel', 2))
+        central = mean_curve(full_param, b_rate, d_rate, method, z0,
+                             solver_methods, shift_times, n, rng)
+        mean = central.copy()
     else:
         samples = np.zeros((k, times.shape[0]))
         for idx in range(k):
-            param_prop = full_param if cov is None else parameter_sampler(
-                param, cov, p_bounds, known_p, idx_known_p, con, rng,
-                max_rejections)
-            samples[idx, :] = simulate.discrete(
-                param_prop, 'custom', z0, shift_times, b_rate=b_rate, d_rate=d_rate,
-                k=1, method=method, seed=rng)
+            try:
+                proposal = full_param if draw is None else draw()
+            except _SamplingError as error:
+                raise RuntimeError(f"Forecast stopped after {idx} of {k} samples: {error}") from error
+            if interval == 'confidence':
+                samples[idx, :] = mean_curve(proposal, b_rate, d_rate, method, z0,
+                                             solver_methods, shift_times, n, rng)
+            else:
+                samples[idx, :] = simulate.discrete(
+                    proposal, 'custom', z0, shift_times, b_rate=b_rate, d_rate=d_rate,
+                    k=1, method=method, seed=rng)
             if display:
-                print(f"Forecast is ", 100 * (idx + 1) / k, f"% complete.")
-
-    if samples is not None:
+                print("Forecast is ", 100 * (idx + 1) / k, "% complete.")
         quantiles = np.percentile(samples, percentiles, axis=0).T
-        # The public central curve is always the actual median, independent of
-        # which interval endpoints the caller requested.
         central = np.percentile(samples, 50, axis=0)
         mean = np.mean(samples, axis=0)
 
+    n_samples = 0 if samples is None else samples.shape[0]
+    n_trajectories = (k if interval == 'prediction' else
+                      0 if method == 'fm' else n * (n_samples or 1))
     return ForecastResult(
         times=np.array(times, copy=True), central=np.array(central, copy=True),
         mean=np.array(mean, copy=True), quantiles=quantiles,
         percentiles=np.array(percentiles, copy=True), samples=samples,
         interval=interval, method=method,
-        metadata={'model': model, 'n_samples': 0 if samples is None else samples.shape[0],
+        metadata={'model': model, 'n_samples': n_samples, 'n_trajectories': n_trajectories,
                   'has_covariance': cov is not None})
