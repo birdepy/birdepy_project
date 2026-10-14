@@ -138,6 +138,12 @@ def discrete(param, model, z0, times, k=1, method='exact', tau=0.1,
 
     # Convert predetermined observation times into a numpy array
     times = np.array(times)
+    if times.ndim != 1 or times.size == 0 or not np.all(np.isfinite(times)):
+        raise ValueError("Argument `times` must be a nonempty, finite sequence.")
+    if np.any(times < 0) or np.any(np.diff(times) < 0):
+        raise ValueError("Observation times must be nonnegative and increasing.")
+    if method != 'exact' and (not np.isfinite(tau) or tau <= 0):
+        raise ValueError("Argument `tau` must be finite and positive.")
 
     # Set the random number generator
     if seed is None:
@@ -234,8 +240,9 @@ def discrete_ea(param, z0, times, k, survival, rng, display, b_rate, d_rate, tau
             for idx, next_observation_time in enumerate(times):
                 # Update sample path up to an event time that exceeds the next observation time
                 while next_event_time <= next_observation_time:
-                    pop += rng.poisson(b_rate(pop, param) * tau)
-                    pop -= rng.poisson(d_rate(pop, param) * tau)
+                    birth_mean = b_rate(pop, param) * tau
+                    death_mean = d_rate(pop, param) * tau
+                    pop += rng.poisson(birth_mean) - rng.poisson(death_mean)
                     if pop < 0:
                         pop = 0
                     next_event_time += tau
@@ -276,12 +283,11 @@ def discrete_ma(param, z0, times, k, survival, rng, display, b_rate, d_rate, tau
             for idx, next_observation_time in enumerate(times):
                 # Update sample path up to an event time that exceeds the next observation time
                 while next_event_time <= next_observation_time:
-                    pop += rng.poisson(
-                        b_rate((pop + 0.5 * tau * (b_rate(pop, param) -
-                                                   d_rate(pop, param))), param) * tau)
-                    pop -= rng.poisson(
-                        d_rate((pop + 0.5 * tau * (b_rate(pop, param) -
-                                                   d_rate(pop, param))), param) * tau)
+                    midpoint = max(0, pop + 0.5 * tau *
+                                   (b_rate(pop, param) - d_rate(pop, param)))
+                    birth_mean = b_rate(midpoint, param) * tau
+                    death_mean = d_rate(midpoint, param) * tau
+                    pop += rng.poisson(birth_mean) - rng.poisson(death_mean)
                     if pop < 0:
                         pop = 0
                     next_event_time += tau
@@ -321,6 +327,15 @@ def discrete_gwa(param, z0, times, k, survival, rng, display, b_rate, d_rate, ta
             for idx, next_observation_time in enumerate(times):
                 # Update sample path up to an event time that exceeds the next observation time
                 while next_event_time <= next_observation_time:
+                    # A branching process cannot represent immigration from zero.
+                    # Use an exact step at this boundary, retaining the same RNG.
+                    if pop == 0:
+                        if b_rate(0, param) > 0:
+                            pop = discrete_exact(param, 0, np.array([tau]), 1,
+                                                 False, rng, False,
+                                                 b_rate, d_rate)[0]
+                        next_event_time += tau
+                        continue
                     lam = b_rate(pop, param) / pop if pop > 0 else 0
                     mu = d_rate(pop, param) / pop if pop > 0 else 0
                     p = 1 - beta1(lam, mu, tau)
@@ -362,8 +377,11 @@ def beta1(lam, mu, t):
     """
     if lam == mu:
         return lam * t / (1 + lam * t)
-    else:
-        return mu * (np.exp((lam - mu) * t) - 1) / (lam * np.exp((lam - mu) * t) - mu)
+    if lam > mu:
+        change = -np.expm1(-(lam - mu) * t)
+        return mu * change / (lam - mu + mu * change)
+    change = -np.expm1(-(mu - lam) * t)
+    return mu * change / (mu - lam + lam * change)
 
 
 def beta2(lam, mu, t):
@@ -380,8 +398,11 @@ def beta2(lam, mu, t):
     """
     if lam == mu:
         return lam * t / (1 + lam * t)
-    else:
-        return lam * beta1(lam, mu, t) / mu
+    if lam > mu:
+        change = -np.expm1(-(lam - mu) * t)
+        return lam * change / (lam - mu + mu * change)
+    change = -np.expm1(-(mu - lam) * t)
+    return lam * change / (mu - lam + lam * change)
 
 
 def continuous(param, model, z0, t_max, k=1, survival=False, seed=None,

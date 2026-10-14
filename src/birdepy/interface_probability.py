@@ -12,7 +12,7 @@ import birdepy.probability_sim as probability_sim
 import birdepy.utility as ut
 
 
-def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
+def probability(z0, zt, t, param, model='Verhulst', method='expm', **options):
     """Transition probabilities for continuous-time birth-and-death processes.
 
     Parameters
@@ -135,7 +135,8 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
     # of a key word argument with key 'options', in this case the dictionary
     # must be extracted:
     if 'options' in options.keys():
-        options = options['options']
+        nested_options = options.pop('options')
+        options = {**nested_options, **options}
 
     # Define the model-dependent birth and death rate functions
     if model == 'custom':
@@ -281,9 +282,10 @@ def probability(z0, zt, t, param, model='Verhulst 1', method='expm', **options):
         if 'k' in options.keys():
             k = options['k']
         else:
-            k = 150
+            k = None
         return probability_uniform.probability_uniform(z0, zt, t, param, b_rate,
-                                                       d_rate, z_trunc, k)
+                                                       d_rate, z_trunc, k,
+                                                       options.get('uniform_tol', 1e-12))
     else:
         raise TypeError("Argument of 'method' is unknown, it should be one of "
                         "'da', 'Erlang', 'gwa', 'gwasa', 'ilt', 'expm', 'oua', "
