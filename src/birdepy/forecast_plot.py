@@ -37,7 +37,7 @@ def plot_forecast(result, ax=None, labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
             label = labels[i] if legacy and i < len(labels) else (
                 f'${result.percentiles[high] - result.percentiles[low]:g}\\%$')
             ax.fill_between(times, result.quantiles[:, low], result.quantiles[:, high],
-                            color=colormap((i + 1) / (half if legacy else max(1, len(pairs))), label=label)
+                            color=colormap((i + 1) / (half if legacy else max(1, len(pairs)))), label=label)
         if pairs:
             ax.legend(loc="upper left")
     ax.tick_params(labelsize=11.5)
