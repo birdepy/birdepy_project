@@ -1,4 +1,5 @@
 import pickle
+import copy
 
 import matplotlib
 matplotlib.use('Agg')
@@ -27,6 +28,7 @@ def test_estimation_output_round_trips_through_pickle():
 
 
 def test_compute_forecast_is_numerical_and_has_known_linear_mean():
+    plt.close('all')
     with pytest.warns(RuntimeWarning, match='cov'):
         result = bd.compute_forecast('linear', 10, [0, 1, 2], [.6, .4])
     assert plt.get_fignums() == []
@@ -96,3 +98,49 @@ def test_parameter_sampler_rejects_nonfinite_constraint_values():
         parameter_sampler(np.array([.6]), np.zeros((1, 1)), None, (), (),
                           {'type': 'ineq', 'fun': lambda p: np.nan},
                           np.random.default_rng(42), max_rejections=1)
+
+
+def test_equality_after_failed_inequality_does_not_consume_rng():
+    rng = np.random.default_rng(123)
+    state = copy.deepcopy(rng.bit_generator.state)
+    constraints = [{'type': 'ineq', 'fun': lambda p: -1},
+                   {'type': 'eq', 'fun': lambda p: p.sum() - 1}]
+    with pytest.raises(ValueError, match='Equality'):
+        parameter_sampler([.6, .4], np.eye(2), None, (), (), constraints, rng)
+    assert rng.bit_generator.state == state
+
+
+@pytest.mark.parametrize('value', [0, True, 1.5])
+def test_invalid_max_rejections_is_rejected_without_covariance(value):
+    with pytest.raises(ValueError, match='max_rejections'):
+        bd.compute_forecast('linear', 10, [0, 1], [.6, .4], max_rejections=value)
+
+
+def test_shifted_truncated_normal_center_is_valid():
+    result = bd.compute_forecast('pure-death', 10, [0, 1], [.5], cov=[[.05]],
+                                 p_bounds=[[.6, 2]], k=4, seed=123)
+    assert result.samples.shape == (4, 2)
+
+
+def test_forecast_result_pickle_and_identity_equality():
+    with pytest.warns(RuntimeWarning):
+        result = bd.compute_forecast('linear', 10, [0, 1], [.6, .4])
+    restored = pickle.loads(pickle.dumps(result))
+    assert restored is not result
+    assert not (restored == result)
+
+
+def test_even_percentiles_plot_band_and_median():
+    result = bd.compute_forecast('linear', 10, [0, 1], [.6, .4], interval='prediction',
+                                 percentiles=[2.5, 97.5], k=20, seed=123)
+    np.testing.assert_allclose(result.central, np.median(result.samples, axis=0))
+    assert len(bd.plot_forecast(result).collections) == 1
+
+
+def test_supplied_constrained_layout_and_any_string_xticks_are_preserved():
+    with pytest.warns(RuntimeWarning):
+        result = bd.compute_forecast('linear', 10, [0, 1], [.6, .4])
+    fig, axes = plt.subplots(2, 2, layout='constrained')
+    engine = fig.get_layout_engine()
+    bd.plot_forecast(result, ax=axes[0, 0], xticks='auto')
+    assert fig.get_layout_engine() is engine

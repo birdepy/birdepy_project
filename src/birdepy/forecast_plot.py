@@ -26,16 +26,18 @@ def plot_forecast(result, ax=None, labels=(r'$95\%$', r'$80\%$', r'$50\%$'),
         m = len(result.percentiles)
         half = int((m - 1) // 2)
         ax.plot(times, result.central, color='k')
-        if tuple(result.percentiles) == (0, 2.5, 10, 25, 50, 75, 90, 97.5, 100):
+        legacy = tuple(result.percentiles) == (0, 2.5, 10, 25, 50, 75, 90, 97.5, 100)
+        if legacy:
             pairs = [(i + 1, -(i + 2)) for i in range(half - 1)]
         else:
             lows = [i for i, p in enumerate(result.percentiles) if p < 50]
             highs = [i for i, p in enumerate(result.percentiles) if p > 50]
-            pairs = list(zip(reversed(lows), highs))
+            pairs = list(zip(lows, reversed(highs)))
         for i, (low, high) in enumerate(pairs):
-            label = labels[i] if i < len(labels) else None
+            label = labels[i] if legacy and i < len(labels) else (
+                f'${result.percentiles[high] - result.percentiles[low]:g}\\%$')
             ax.fill_between(times, result.quantiles[:, low], result.quantiles[:, high],
-                            color=colormap((i + 1) / max(1, len(pairs))), label=label)
+                            color=colormap((i + 1) / (half if legacy else max(1, len(pairs))), label=label)
         if pairs:
             ax.legend(loc="upper left")
     ax.tick_params(labelsize=11.5)
