@@ -5,6 +5,7 @@ from birdepy.interface_dnm import discrete_est_dnm
 from birdepy.interface_dnm import continuous_est_dnm
 from birdepy.interface_lse import discrete_est_lse
 from birdepy.interface_em import discrete_est_em
+from scipy.optimize import LinearConstraint, NonlinearConstraint
 import birdepy.utility as ut
 from collections.abc import Mapping
 from birdepy.observations import normalize_observations
@@ -12,7 +13,6 @@ import time
 from scipy.optimize import OptimizeResult
 from birdepy.interface_aug import f_fun_bld as f_fun_bld
 from birdepy import simulate
-from scipy.optimize import LinearConstraint, NonlinearConstraint
 
 
 def estimate(t_data, p_data, p0, p_bounds, framework='dnm', model='Verhulst',
