@@ -12,7 +12,7 @@
   },
   "homepage": "https://github.com/birdepy/birdepy_project#readme",
   "devDependencies": {
-    "semantic-release": "^25.0.9",
+    "semantic-release": "^26.0.0",
     "semantic-release-pypi": "^5.3.0"
   },
   "release": {
